@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zainabiyya-db-v2';
+const CACHE_NAME = 'zainabiyya-db-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

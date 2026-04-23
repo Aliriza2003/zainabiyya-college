@@ -1139,7 +1139,8 @@ function renderDocs(student) {
         const tr = document.createElement('tr');
         let isPdf = false;
         if (doc.file) {
-            if (doc.file.startsWith('data:application/pdf')) isPdf = true;
+            if (doc.format && doc.format.toLowerCase() === 'pdf') isPdf = true;
+            else if (doc.file.startsWith('data:application/pdf')) isPdf = true;
             else if (doc.file.toLowerCase().includes('.pdf')) isPdf = true;
             else if (doc.storagePath && doc.storagePath.toLowerCase().endsWith('.pdf')) isPdf = true;
             else if (doc.name && doc.name.toLowerCase().endsWith('.pdf')) isPdf = true;
@@ -1202,7 +1203,8 @@ addDocForm.addEventListener('submit', async (e) => {
                 id: docId,
                 name: newDocName.value.trim(),
                 file: downloadURL,
-                storagePath: data.public_id
+                storagePath: data.public_id,
+                format: data.format || file.name.split('.').pop()
             });
             
             await db.collection("students").doc(student.admission_no.toString()).set(student);

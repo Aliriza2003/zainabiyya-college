@@ -917,18 +917,31 @@ addDocForm.addEventListener('submit', async (e) => {
     if (newDocFile.files.length > 0) {
         const file = newDocFile.files[0];
         const docId = Date.now();
-        const storageRef = storage.ref(`staff_docs/${staffMember.staff_id}/${docId}_${file.name}`);
         
         try {
-            showNotification('Uploading document...', 'info');
-            const snapshot = await storageRef.put(file);
-            const downloadURL = await snapshot.ref.getDownloadURL();
+            showNotification('Uploading to Cloudinary...', 'info');
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', 'b4w3hzdw');
+            
+            const response = await fetch(`https://api.cloudinary.com/v1_1/dtaevnxys/auto/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error('Cloudinary upload failed');
+            }
+            
+            const data = await response.json();
+            const downloadURL = data.secure_url;
             
             staffMember.docs.push({
                 id: docId,
                 name: newDocName.value.trim(),
                 file: downloadURL,
-                storagePath: storageRef.fullPath
+                storagePath: data.public_id
             });
             
             await db.collection("staff").doc(staffMember.staff_id.toString()).set(staffMember);
@@ -949,14 +962,6 @@ window.deleteDoc = async function(staffId, docId) {
     if(!confirm("Are you sure you want to delete this document?")) return;
     const staffMember = (await db.collection("staff").doc(staffId.toString()).get()).data();
     if(staffMember && staffMember.docs) {
-        const docToDelete = staffMember.docs.find(d => d.id === docId);
-        if(docToDelete && docToDelete.storagePath) {
-            try {
-                await storage.ref(docToDelete.storagePath).delete();
-            } catch(e) {
-                console.error("Error deleting from storage", e);
-            }
-        }
         staffMember.docs = staffMember.docs.filter(d => d.id !== docId);
         await db.collection("staff").doc(staffMember.staff_id.toString()).set(staffMember);
         renderDocs(staffMember);

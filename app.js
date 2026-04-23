@@ -1178,18 +1178,31 @@ addDocForm.addEventListener('submit', async (e) => {
     if (newDocFile.files.length > 0) {
         const file = newDocFile.files[0];
         const docId = Date.now();
-        const storageRef = firebase.storage().ref(`student_docs/${student.admission_no}/${docId}_${file.name}`);
         
         try {
-            showNotification('Uploading document...', 'info');
-            const snapshot = await storageRef.put(file);
-            const downloadURL = await snapshot.ref.getDownloadURL();
+            showNotification('Uploading to Cloudinary...', 'info');
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', 'b4w3hzdw');
+            
+            const response = await fetch(`https://api.cloudinary.com/v1_1/dtaevnxys/auto/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error('Cloudinary upload failed');
+            }
+            
+            const data = await response.json();
+            const downloadURL = data.secure_url;
             
             student.docs.push({
                 id: docId,
                 name: newDocName.value.trim(),
                 file: downloadURL,
-                storagePath: storageRef.fullPath
+                storagePath: data.public_id
             });
             
             await db.collection("students").doc(student.admission_no.toString()).set(student);
@@ -1210,14 +1223,6 @@ window.deleteDoc = async function(studentId, docId) {
     if(!confirm("Are you sure you want to delete this document?")) return;
     const student = (await db.collection("students").doc(studentId.toString()).get()).data();
     if(student && student.docs) {
-        const docToDelete = student.docs.find(d => d.id === docId);
-        if(docToDelete && docToDelete.storagePath) {
-            try {
-                await firebase.storage().ref(docToDelete.storagePath).delete();
-            } catch(e) {
-                console.error("Error deleting from storage", e);
-            }
-        }
         student.docs = student.docs.filter(d => d.id !== docId);
         await db.collection("students").doc(student.admission_no.toString()).set(student);
         renderDocs(student);

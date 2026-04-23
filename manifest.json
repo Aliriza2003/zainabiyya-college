@@ -1,0 +1,16 @@
+{
+  "name": "Zainabiyya Student Database",
+  "short_name": "Zainabiyya DB",
+  "description": "Student management system for Zainabiyya Ladies College",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "./logo.png.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

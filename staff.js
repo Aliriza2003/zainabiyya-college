@@ -1,6 +1,7 @@
 window.onerror = function(msg, url, line, col, error) {
-    alert("Error: " + msg + "\nLine: " + line);
+    alert("SYSTEM ERROR (staff.js): " + msg + "\nLine: " + line);
 };
+console.log("STAFF.JS LOADED - V17");
 const firebaseConfig = {
   apiKey: "AIzaSyBCEXwWHF1SyhPDMUdkP0tEkzy7EDTZZw0",
   authDomain: "zainabiyya-db.firebaseapp.com",
@@ -51,13 +52,12 @@ const staffModal = document.getElementById('staffModal');
 const form = document.getElementById('staffForm');
 
 window.openStaffModal = function() {
-    staffModal.classList.remove('hidden');
-    staffModal.classList.add('flex');
+    staffModal.style.display = 'flex';
+    staffModal.style.zIndex = '9999';
 };
 
 window.closeStaffModal = function() {
-    staffModal.classList.add('hidden');
-    staffModal.classList.remove('flex');
+    staffModal.style.display = 'none';
     form.reset();
 };
 const staffIdInput = document.getElementById('staffId');
@@ -133,6 +133,53 @@ const newSalaryAmount = document.getElementById('newSalaryAmount');
 const salaryTbody = document.getElementById('salaryTbody');
 const profileSalaryTbody = document.getElementById('profileSalaryTbody');
 const noSalaryMessage = document.getElementById('noSalaryMessage');
+
+// Attendance Elements
+const attendanceModal = document.getElementById('attendanceModal');
+const attendanceStaffName = document.getElementById('attendanceStaffName');
+const addAttendanceStaffId = document.getElementById('addAttendanceStaffId');
+const addAttendanceForm = document.getElementById('addAttendanceForm');
+const newAttendanceDate = document.getElementById('newAttendanceDate');
+const newAttendanceEntryTime = document.getElementById('newAttendanceEntryTime');
+const newAttendanceExitTime = document.getElementById('newAttendanceExitTime');
+const attendanceTbody = document.getElementById('attendanceTbody');
+const profileAttendanceTable = document.getElementById('profileAttendanceTable');
+const profileAttendanceTbody = document.getElementById('profileAttendanceTbody');
+const noAttendanceMessage = document.getElementById('noAttendanceMessage');
+const profileAttendanceFrom = document.getElementById('profileAttendanceFrom');
+const profileAttendanceTo = document.getElementById('profileAttendanceTo');
+const profileAttendanceBadge = document.getElementById('profileAttendanceBadge');
+const manageAttendanceFrom = document.getElementById('manageAttendanceFrom');
+const manageAttendanceTo = document.getElementById('manageAttendanceTo');
+const manageAttendanceBadge = document.getElementById('manageAttendanceBadge');
+
+// Periods Elements
+const periodsModal = document.getElementById('periodsModal');
+const periodsStaffName = document.getElementById('periodsStaffName');
+const addPeriodsStaffId = document.getElementById('addPeriodsStaffId');
+const addPeriodsForm = document.getElementById('addPeriodsForm');
+const newPeriodFromDate = document.getElementById('newPeriodFromDate');
+const newPeriodToDate = document.getElementById('newPeriodToDate');
+const newPeriodAllocated = document.getElementById('newPeriodAllocated');
+const newPeriodConducted = document.getElementById('newPeriodConducted');
+const newPeriodMissed = document.getElementById('newPeriodMissed');
+const newPeriodReasonContainer = document.getElementById('newPeriodReasonContainer');
+const newPeriodReason = document.getElementById('newPeriodReason');
+const periodsTbody = document.getElementById('periodsTbody');
+const profilePeriodsTable = document.getElementById('profilePeriodsTable');
+const profilePeriodsTbody = document.getElementById('profilePeriodsTbody');
+const noPeriodsMessage = document.getElementById('noPeriodsMessage');
+const profilePeriodsFrom = document.getElementById('profilePeriodsFrom');
+const profilePeriodsTo = document.getElementById('profilePeriodsTo');
+const profilePeriodsBadge = document.getElementById('profilePeriodsBadge');
+const profilePeriodsTfoot = document.getElementById('profilePeriodsTfoot');
+const profileTotalAllocated = document.getElementById('profileTotalAllocated');
+const profileTotalConducted = document.getElementById('profileTotalConducted');
+const profileTotalMissed = document.getElementById('profileTotalMissed');
+const profileConductPercentage = document.getElementById('profileConductPercentage');
+const managePeriodsFrom = document.getElementById('managePeriodsFrom');
+const managePeriodsTo = document.getElementById('managePeriodsTo');
+const managePeriodsBadge = document.getElementById('managePeriodsBadge');
 
 // Live Clock
 const liveDateTime = document.getElementById('liveDateTime');
@@ -230,7 +277,9 @@ form.addEventListener('submit', async (e) => {
         dob: dobInput.value,
         note: staffNoteInput.value.trim(),
         docs: [],
-        salaries: []
+        salaries: [],
+        attendance: [],
+        periods: []
     };
 
     try {
@@ -255,10 +304,31 @@ searchInput.addEventListener('input', (e) => {
     loadStaffs(e.target.value.toLowerCase());
 });
 
+let currentFilter = 'active';
+
+window.setFilter = function(filter) {
+    currentFilter = filter;
+    
+    // update button styles
+    const activeBtn = document.getElementById('filterActiveBtn');
+    const pastBtn = document.getElementById('filterPastBtn');
+    
+    if(filter === 'active') {
+        activeBtn.className = "px-5 py-1.5 rounded-full text-sm font-bold bg-brand-500 text-white shadow-md shadow-brand-500/20 border border-brand-500 transition-all";
+        pastBtn.className = "px-5 py-1.5 rounded-full text-sm font-bold bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 transition-all";
+    } else {
+        pastBtn.className = "px-5 py-1.5 rounded-full text-sm font-bold bg-brand-500 text-white shadow-md shadow-brand-500/20 border border-brand-500 transition-all";
+        activeBtn.className = "px-5 py-1.5 rounded-full text-sm font-bold bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 transition-all";
+    }
+    
+    loadStaffs(searchInput.value.toLowerCase());
+}
+
 // Load Staffs from DB
 async function loadStaffs(query = '') {
     try {
-        const querySnapshot = await db.collection("staff").get();
+        const collectionName = currentFilter === 'active' ? "staff" : "past_staff";
+        const querySnapshot = await db.collection(collectionName).get();
         let staffMembers = [];
         querySnapshot.forEach((doc) => {
             staffMembers.push(doc.data());
@@ -329,7 +399,7 @@ function renderStaffs(staffMembers) {
                     <div class="flex items-center gap-3">
                         ${avatarHTML}
                         <div>
-                            <button onclick="viewStaffProfile(${staffMember.staff_id})" class="text-sm font-semibold text-brand-600 hover:text-brand-800 text-left transition-colors">${staffMember.full_name}</button>
+                            <button onclick="viewStaffProfile('${staffMember.staff_id}')" class="text-sm font-semibold text-brand-600 hover:text-brand-800 text-left transition-colors">${staffMember.full_name}</button>
                             
                         </div>
                     </div>
@@ -356,17 +426,23 @@ function renderStaffs(staffMembers) {
                     </div>
                 </td>
                 <td class="py-4 px-5 text-right border-b border-gray-50">
-                    <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                        <button onclick="openDocsModal(${staffMember.staff_id})" class="text-brand-500 hover:text-brand-700 hover:bg-brand-50 p-2 rounded-xl transition-all" title="Manage Documents">
+                    <div class="flex justify-end gap-1 opacity-100 transition-opacity">
+                        <button onclick="openPeriodsModal('${staffMember.staff_id}', '${staffMember.full_name.replace(/'/g, "\\'")}')" class="text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 p-2 rounded-xl transition-all" title="Manage Weekly Periods">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </button>
+                        <button onclick="openAttendanceModal('${staffMember.staff_id}', '${staffMember.full_name.replace(/'/g, "\\'")}')" class="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-xl transition-all" title="Manage Attendance">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </button>
+                        <button onclick="openDocsModal('${staffMember.staff_id}', '${staffMember.full_name.replace(/'/g, "\\'")}')" class="text-brand-500 hover:text-brand-700 hover:bg-brand-50 p-2 rounded-xl transition-all" title="Manage Documents">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
                         </button>
-                        <button onclick="openSalaryModal(${staffMember.staff_id})" class="text-green-500 hover:text-green-700 hover:bg-green-50 p-2 rounded-xl transition-all" title="Manage Salaries">
+                        <button onclick="openSalaryModal('${staffMember.staff_id}', '${staffMember.full_name.replace(/'/g, "\\'")}')" class="text-green-500 hover:text-green-700 hover:bg-green-50 p-2 rounded-xl transition-all" title="Manage Salaries">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         </button>
-                        <button onclick="openEditModal(${staffMember.staff_id})" class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-xl transition-all" title="Edit Staff">
+                        <button onclick="openEditModal('${staffMember.staff_id}')" class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-xl transition-all" title="Edit Staff">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                         </button>
-                        <button onclick="promptDelete(${staffMember.staff_id}, '${staffMember.full_name.replace(/'/g, "\\'")}')" class="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-xl transition-all" title="Remove Staff">
+                        <button onclick="promptDelete('${staffMember.staff_id}', '${staffMember.full_name.replace(/'/g, "\\'")}')" class="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-xl transition-all" title="Remove Staff">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </button>
                     </div>
@@ -431,28 +507,28 @@ function showNotification(message, type, undoCallback = null) {
 window.promptDelete = function(id, name) {
     currentDeleteId = id;
     deleteStaffName.textContent = name;
-    deleteModal.classList.remove('hidden');
-    deleteModal.classList.add('flex');
+    deleteModal.style.display = 'flex';
+    deleteModal.style.zIndex = '9999';
 };
 
 window.closeDeleteModal = function() {
-    deleteModal.classList.add('hidden');
-    deleteModal.classList.remove('flex');
+    deleteModal.style.display = 'none';
     currentDeleteId = null;
 }
 
 document.getElementById('cancelBtn').addEventListener('click', closeDeleteModal);
 document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
     if (currentDeleteId) {
+        const collectionName = currentFilter === 'active' ? "staff" : "past_staff";
         // Fetch staff data before deletion for potential undo
-        const staffToRestore = (await db.collection("staff").doc(currentDeleteId.toString()).get()).data();
+        const staffToRestore = (await db.collection(collectionName).doc(currentDeleteId.toString()).get()).data();
         
-        await db.collection("staff").doc(currentDeleteId.toString()).delete();
+        await db.collection(collectionName).doc(currentDeleteId.toString()).delete();
         
         showNotification('Staff record removed successfully.', 'success', async () => {
              // Undo Delete Action
              if(staffToRestore) {
-                 await db.collection("staff").doc(staffToRestore.staff_id.toString()).set(staffToRestore);
+                 await db.collection(collectionName).doc(staffToRestore.staff_id.toString()).set(staffToRestore);
                  showNotification('Staff restored.', 'success');
                  loadStaffs(searchInput.value.toLowerCase());
              }
@@ -463,9 +539,46 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async () =
     }
 });
 
+// Generic Confirm Flow
+let pendingConfirmCallback = null;
+
+window.openGenericConfirmModal = function(title, message, onConfirm) {
+    const titleEl = document.getElementById('genericConfirmTitle');
+    const msgEl = document.getElementById('genericConfirmMessage');
+    if (titleEl) titleEl.textContent = title;
+    if (msgEl) msgEl.textContent = message;
+    
+    pendingConfirmCallback = onConfirm;
+    
+    const modal = document.getElementById('genericConfirmModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.style.zIndex = '10000';
+    }
+};
+
+window.closeGenericConfirmModal = function() {
+    const modal = document.getElementById('genericConfirmModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    pendingConfirmCallback = null;
+};
+
+const genericConfirmActionBtn = document.getElementById('genericConfirmActionBtn');
+if (genericConfirmActionBtn) {
+    genericConfirmActionBtn.addEventListener('click', async () => {
+        if (pendingConfirmCallback) {
+            await pendingConfirmCallback();
+            closeGenericConfirmModal();
+        }
+    });
+}
+
 // Edit Flow
 window.openEditModal = async function(id) {
-    const staffMember = (await db.collection("staff").doc(id.toString()).get()).data();
+    const collectionName = currentFilter === 'active' ? "staff" : "past_staff";
+    const staffMember = (await db.collection(collectionName).doc(id.toString()).get()).data();
     if(staffMember) {
         oldStaffId.value = staffMember.staff_id;
         editAdmissionNo.value = staffMember.staff_id;
@@ -481,22 +594,81 @@ window.openEditModal = async function(id) {
         editPhotoPreview.src = staffMember.photo || '';
         editPhotoPreview.classList.toggle('hidden', !staffMember.photo);
         
-        editModal.classList.remove('hidden');
-        editModal.classList.add('flex');
+        editModal.style.display = 'flex';
+        editModal.style.zIndex = '9999';
     }
 };
 
 window.closeEditModal = function() {
-    editModal.classList.add('hidden');
-    editModal.classList.remove('flex');
+    editModal.style.display = 'none';
     editForm.reset();
 }
+
+// Left Flow
+let currentLeftId = null;
+const leftModal = document.getElementById('leftModal');
+
+window.openLeftModal = async function() {
+    if (!editAdmissionNo.value) return;
+    currentLeftId = editAdmissionNo.value;
+    const staffMember = (await db.collection("staff").doc(currentLeftId.toString()).get()).data();
+    if(staffMember) {
+        document.getElementById('leftStaffName').textContent = staffMember.full_name;
+        leftModal.style.display = 'flex';
+        leftModal.style.zIndex = '9999';
+    }
+};
+
+window.closeLeftModal = function() {
+    leftModal.style.display = 'none';
+    currentLeftId = null;
+    document.getElementById('leftDateInput').value = '';
+    document.getElementById('leftReasonInput').value = '';
+}
+
+document.getElementById('confirmLeftBtn')?.addEventListener('click', async () => {
+    const leftDate = document.getElementById('leftDateInput').value;
+    const leftReason = document.getElementById('leftReasonInput').value.trim();
+
+    if (!leftDate || !leftReason) {
+        showNotification('Please provide both leave date and reason', 'error');
+        return;
+    }
+
+    if (currentLeftId) {
+        const staffToRestore = (await db.collection("staff").doc(currentLeftId.toString()).get()).data();
+        
+        staffToRestore.left_date = leftDate;
+        staffToRestore.left_reason = leftReason;
+        staffToRestore.status = 'inactive';
+
+        await db.collection("past_staff").doc(currentLeftId.toString()).set(staffToRestore);
+        await db.collection("staff").doc(currentLeftId.toString()).delete();
+        
+        showNotification('Staff marked as left.', 'success', async () => {
+             if(staffToRestore) {
+                 delete staffToRestore.left_date;
+                 delete staffToRestore.left_reason;
+                 delete staffToRestore.status;
+                 await db.collection("staff").doc(staffToRestore.staff_id.toString()).set(staffToRestore);
+                 await db.collection("past_staff").doc(currentLeftId.toString()).delete();
+                 showNotification('Staff restored to active list.', 'success');
+                 loadStaffs(searchInput.value.toLowerCase());
+             }
+        });
+        
+        closeLeftModal();
+        closeEditModal();
+        loadStaffs(searchInput.value.toLowerCase());
+    }
+});
 
 editForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const oldId = parseInt(oldStaffId.value);
     const newId = parseInt(editAdmissionNo.value);
-    const staffMember = (await db.collection("staff").doc(oldId.toString()).get()).data();
+    const collectionName = currentFilter === 'active' ? "staff" : "past_staff";
+    const staffMember = (await db.collection(collectionName).doc(oldId.toString()).get()).data();
     
     staffMember.staff_id = newId;
     staffMember.full_name = editFullName.value.trim();
@@ -514,9 +686,9 @@ editForm.addEventListener('submit', async (e) => {
     }
 
     if (oldId !== newId) {
-        await db.collection("staff").doc(oldId.toString()).delete();
+        await db.collection(collectionName).doc(oldId.toString()).delete();
     }
-    await db.collection("staff").doc(newId.toString()).set(staffMember);
+    await db.collection(collectionName).doc(newId.toString()).set(staffMember);
     showNotification('Staff updated successfully!', 'success');
     closeEditModal();
     loadStaffs(searchInput.value.toLowerCase());
@@ -524,15 +696,37 @@ editForm.addEventListener('submit', async (e) => {
 
 // Profile Flow
 window.viewStaffProfile = async function(id) {
-    window.currentProfileId = id;
-    const staffMember = (await db.collection("staff").doc(id.toString()).get()).data();
-    if(!staffMember) return;
+    console.log("viewStaffProfile clicked for ID:", id);
+    // alert("Viewing Staff Profile for ID: " + id);
+    try {
+        window.currentProfileId = id;
+        const collectionName = currentFilter === 'active' ? "staff" : "past_staff";
+        const docRef = db.collection(collectionName).doc(id.toString());
+        console.log("Fetching staff data from Firestore collection:", collectionName, "ID:", id);
+        const docSnap = await docRef.get();
+        console.log("Firestore staff response received.");
+        const staffMember = docSnap.data();
+        
+        if(!staffMember) {
+            showNotification('Staff member not found!', 'error');
+            return;
+        }
 
-    profileName.textContent = staffMember.full_name;
-    profileStaffId.textContent = staffMember.staff_id;
-    profileRole.textContent = staffMember.grade + (staffMember.emp_type ? ` • ${staffMember.emp_type}` : '');
-    profileContact.textContent = staffMember.parent_contact;
-    profileAdmissionDate.textContent = staffMember.admission_date || '-';
+        // OPEN MODAL FIRST
+        console.log("Opening Staff Profile Modal (Simple Mode)...");
+        if (profileModal) {
+            profileModal.style.display = 'flex';
+            profileModal.style.zIndex = '9999';
+        }
+
+        if (profileName) profileName.textContent = staffMember.full_name;
+        // Check if profileStaffId exists before setting it
+        const profileStaffIdEl = document.getElementById('profileStaffId');
+        if (profileStaffIdEl) profileStaffIdEl.textContent = staffMember.staff_id;
+        
+        profileRole.textContent = staffMember.grade + (staffMember.emp_type ? ` • ${staffMember.emp_type}` : '');
+        profileContact.textContent = staffMember.parent_contact;
+        profileAdmissionDate.textContent = staffMember.admission_date || '-';
     profileNic.textContent = staffMember.nic || '-';
     profileAddress.textContent = staffMember.address || staffMember.city || '-';
     let dobText = staffMember.dob || '-';
@@ -547,6 +741,21 @@ window.viewStaffProfile = async function(id) {
     }
     profileDob.textContent = dobText;
     profileNote.textContent = staffMember.note || '-';
+
+    const leftInfo = document.getElementById('profileLeftInfo');
+    if (leftInfo) {
+        if (staffMember.left_date || staffMember.left_reason) {
+            const dateEl = document.getElementById('profileLeftDate');
+            const reasonEl = document.getElementById('profileLeftReason');
+            if (dateEl) dateEl.textContent = staffMember.left_date || '-';
+            if (reasonEl) reasonEl.textContent = staffMember.left_reason || '-';
+            leftInfo.classList.remove('hidden');
+            leftInfo.classList.add('grid');
+        } else {
+            leftInfo.classList.add('hidden');
+            leftInfo.classList.remove('grid');
+        }
+    }
 
     if (staffMember.photo) {
         profilePhoto.src = staffMember.photo;
@@ -573,8 +782,9 @@ window.viewStaffProfile = async function(id) {
             const tr = document.createElement('tr');
             let isPdf = false;
             if (doc.file) {
-                if (doc.file.startsWith('data:application/pdf')) isPdf = true;
-                else if (doc.file.toLowerCase().includes('.pdf?')) isPdf = true;
+                if (doc.format && doc.format.toLowerCase() === 'pdf') isPdf = true;
+                else if (doc.file.startsWith('data:application/pdf')) isPdf = true;
+                else if (doc.file.toLowerCase().includes('.pdf')) isPdf = true;
                 else if (doc.storagePath && doc.storagePath.toLowerCase().endsWith('.pdf')) isPdf = true;
                 else if (doc.name && doc.name.toLowerCase().endsWith('.pdf')) isPdf = true;
             }
@@ -585,8 +795,8 @@ window.viewStaffProfile = async function(id) {
                 </td>
                 <td class="py-3 px-4 text-right border-t border-gray-50">
                     ${isPdf 
-                        ? `<button onclick="window.open('${doc.file}', '_blank')" class="text-brand-600 font-semibold hover:underline">View PDF</button>` 
-                        : `<button onclick="window.openImageViewer('${doc.file}')" class="text-brand-600 font-semibold hover:underline">View Image</button>`
+                        ? `<a href="${(doc.file || '').replace('/upload/', '/upload/fl_attachment/')}" target="_blank" rel="noopener noreferrer" class="text-brand-600 font-semibold hover:underline">Download PDF</a>` 
+                        : `<button onclick="window.openImageViewer('${(doc.file || '').replace(/'/g, "\\'")}')" class="text-brand-600 font-semibold hover:underline">View Image</button>`
                     }
                 </td>
             `;
@@ -594,8 +804,7 @@ window.viewStaffProfile = async function(id) {
         });
     }
 
-    profileModal.classList.remove('hidden');
-    profileModal.classList.add('flex');
+    console.log("Staff basic rendering done.");
     
     // Render profile salary records
     profileSalaryTbody.innerHTML = '';
@@ -619,17 +828,811 @@ window.viewStaffProfile = async function(id) {
             profileSalaryTbody.appendChild(tr);
         });
     }
+
+    // Render profile attendance records with date range filtering
+    window.currentProfileStaffData = staffMember;
+    if (profileAttendanceFrom && !profileAttendanceFrom.value && profileAttendanceTo && !profileAttendanceTo.value) {
+        // default to empty (showing all)
+    }
+    renderProfileAttendance();
+
+    // Render profile periods records with date range filtering
+    renderProfilePeriods();
+
+    } catch (error) {
+        alert('Critical Error in viewStaffProfile: ' + error.message);
+        console.error(error);
+    }
 }
 
 window.closeProfileModal = function() {
-    profileModal.classList.add('hidden');
-    profileModal.classList.remove('flex');
+    profileModal.style.display = 'none';
 }
+
+function calculateWorkMinutes(entryTime, exitTime) {
+    if (!entryTime || !exitTime) return 0;
+    const [entryH, entryM] = entryTime.split(':').map(Number);
+    const [exitH, exitM] = exitTime.split(':').map(Number);
+    if (isNaN(entryH) || isNaN(entryM) || isNaN(exitH) || isNaN(exitM)) return 0;
+    
+    let totalMinutes = (exitH * 60 + exitM) - (entryH * 60 + entryM);
+    if (totalMinutes < 0) totalMinutes += 24 * 60; // Overnight
+    return totalMinutes;
+}
+
+function formatWorkHours(totalMinutes) {
+    if (!totalMinutes || totalMinutes <= 0) return '-';
+    const hours = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    if (hours === 0 && mins === 0) return '0h';
+    if (mins === 0) return `${hours} hrs`;
+    if (hours === 0) return `${mins} mins`;
+    return `${hours}h ${mins}m`;
+}
+
+window.renderProfileAttendance = function() {
+    const staffMember = window.currentProfileStaffData;
+    if (!staffMember) return;
+    
+    const records = staffMember.attendance || [];
+    const fromVal = profileAttendanceFrom ? profileAttendanceFrom.value : '';
+    const toVal = profileAttendanceTo ? profileAttendanceTo.value : '';
+
+    let filtered = records.filter(r => {
+        if (!r.date) return false;
+        if (fromVal && r.date < fromVal) return false;
+        if (toVal && r.date > toVal) return false;
+        return true;
+    });
+
+    filtered.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+    // Calculate total minutes worked
+    let totalMinutesAll = 0;
+    filtered.forEach(r => {
+        totalMinutesAll += calculateWorkMinutes(r.entryTime, r.exitTime);
+    });
+    const totalHoursFormatted = formatWorkHours(totalMinutesAll);
+
+    if (profileAttendanceBadge) {
+        const hoursText = totalMinutesAll > 0 ? ` • ${totalHoursFormatted}` : '';
+        if (fromVal || toVal) {
+            profileAttendanceBadge.textContent = `${filtered.length} of ${records.length} Days${hoursText}`;
+        } else {
+            profileAttendanceBadge.textContent = `${records.length} Days${hoursText}`;
+        }
+    }
+
+    const totalHoursEl = document.getElementById('profileTotalWorkHours');
+    if (totalHoursEl) {
+        totalHoursEl.textContent = totalMinutesAll > 0 ? totalHoursFormatted : '0h';
+    }
+
+    if (profileAttendanceTbody) profileAttendanceTbody.innerHTML = '';
+    
+    if (filtered.length === 0) {
+        if (profileAttendanceTable && profileAttendanceTable.parentElement) {
+            profileAttendanceTable.parentElement.classList.add('hidden');
+        }
+        if (noAttendanceMessage) {
+            noAttendanceMessage.classList.remove('hidden');
+            if (records.length > 0 && (fromVal || toVal)) {
+                noAttendanceMessage.textContent = 'No attendance records found for the selected date range.';
+            } else {
+                noAttendanceMessage.textContent = 'No attendance records yet.';
+            }
+        }
+    } else {
+        if (profileAttendanceTable && profileAttendanceTable.parentElement) {
+            profileAttendanceTable.parentElement.classList.remove('hidden');
+        }
+        if (noAttendanceMessage) noAttendanceMessage.classList.add('hidden');
+
+        filtered.forEach(record => {
+            const mins = calculateWorkMinutes(record.entryTime, record.exitTime);
+            const hoursStr = formatWorkHours(mins);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="py-3 px-4 font-semibold text-gray-800">${record.date}</td>
+                <td class="py-3 px-4 text-gray-600">${formatTimeAMPM(record.entryTime)}</td>
+                <td class="py-3 px-4 text-gray-600">${formatTimeAMPM(record.exitTime)}</td>
+                <td class="py-3 px-4 text-right font-semibold text-blue-600">${hoursStr}</td>
+            `;
+            profileAttendanceTbody.appendChild(tr);
+        });
+    }
+};
+
+window.setProfileAttendancePreset = function(preset) {
+    if (!profileAttendanceFrom || !profileAttendanceTo) return;
+    const now = new Date();
+    
+    if (preset === 'this_month') {
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        profileAttendanceFrom.value = firstDay.toLocaleDateString('en-CA');
+        profileAttendanceTo.value = lastDay.toLocaleDateString('en-CA');
+    } else if (preset === 'last_month') {
+        const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+        profileAttendanceFrom.value = firstDay.toLocaleDateString('en-CA');
+        profileAttendanceTo.value = lastDay.toLocaleDateString('en-CA');
+    } else if (preset === 'last_30_days') {
+        const past = new Date();
+        past.setDate(past.getDate() - 30);
+        profileAttendanceFrom.value = past.toLocaleDateString('en-CA');
+        profileAttendanceTo.value = now.toLocaleDateString('en-CA');
+    } else if (preset === 'all') {
+        profileAttendanceFrom.value = '';
+        profileAttendanceTo.value = '';
+    }
+    renderProfileAttendance();
+};
+
+window.clearProfileAttendanceFilter = function() {
+    if (profileAttendanceFrom) profileAttendanceFrom.value = '';
+    if (profileAttendanceTo) profileAttendanceTo.value = '';
+    renderProfileAttendance();
+};
+
+if (profileAttendanceFrom) profileAttendanceFrom.addEventListener('change', () => renderProfileAttendance());
+if (profileAttendanceTo) profileAttendanceTo.addEventListener('change', () => renderProfileAttendance());
+
+window.renderProfilePeriods = function() {
+    const staffMember = window.currentProfileStaffData;
+    if (!staffMember) return;
+
+    const records = staffMember.periods || [];
+    const fromVal = profilePeriodsFrom ? profilePeriodsFrom.value : '';
+    const toVal = profilePeriodsTo ? profilePeriodsTo.value : '';
+
+    let filtered = records.filter(r => {
+        if (fromVal && (r.toDate || r.fromDate) < fromVal) return false;
+        if (toVal && (r.fromDate || r.toDate) > toVal) return false;
+        return true;
+    });
+
+    filtered.sort((a,b) => new Date(b.fromDate) - new Date(a.fromDate));
+
+    // Calculate totals
+    const totalAllocated = filtered.reduce((sum, r) => sum + (parseInt(r.allocated) || 0), 0);
+    const totalConducted = filtered.reduce((sum, r) => sum + (parseInt(r.conducted) || 0), 0);
+    const totalMissed = filtered.reduce((sum, r) => sum + (parseInt(r.missed) || 0), 0);
+    const completionRate = totalAllocated > 0 ? Math.round((totalConducted / totalAllocated) * 100) : 0;
+
+    if (profilePeriodsBadge) {
+        const rateText = totalAllocated > 0 ? ` • ${completionRate}% Conducted` : '';
+        if (fromVal || toVal) {
+            profilePeriodsBadge.textContent = `${filtered.length} of ${records.length} Weeks${rateText}`;
+        } else {
+            profilePeriodsBadge.textContent = `${records.length} Weeks${rateText}`;
+        }
+    }
+
+    if (profileTotalAllocated) profileTotalAllocated.textContent = totalAllocated;
+    if (profileTotalConducted) profileTotalConducted.textContent = totalConducted;
+    if (profileTotalMissed) profileTotalMissed.textContent = totalMissed;
+    if (profileConductPercentage) profileConductPercentage.textContent = `${completionRate}% Completed`;
+
+    if (profilePeriodsTbody) profilePeriodsTbody.innerHTML = '';
+
+    if (filtered.length === 0) {
+        if (profilePeriodsTable && profilePeriodsTable.parentElement) {
+            profilePeriodsTable.parentElement.classList.add('hidden');
+        }
+        if (noPeriodsMessage) {
+            noPeriodsMessage.classList.remove('hidden');
+            if (records.length > 0 && (fromVal || toVal)) {
+                noPeriodsMessage.textContent = 'No period records found for the selected date range.';
+            } else {
+                noPeriodsMessage.textContent = 'No weekly period records yet.';
+            }
+        }
+    } else {
+        if (profilePeriodsTable && profilePeriodsTable.parentElement) {
+            profilePeriodsTable.parentElement.classList.remove('hidden');
+        }
+        if (noPeriodsMessage) noPeriodsMessage.classList.add('hidden');
+
+        filtered.forEach(record => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="py-3 px-4 font-semibold text-gray-800">${record.fromDate} to ${record.toDate}</td>
+                <td class="py-3 px-3 text-center text-gray-700 font-medium">${record.allocated}</td>
+                <td class="py-3 px-3 text-center text-green-600 font-bold">${record.conducted}</td>
+                <td class="py-3 px-3 text-center text-red-500 font-bold">${record.missed}</td>
+                <td class="py-3 px-4 text-gray-500 text-xs">${record.reason ? record.reason : '-'}</td>
+            `;
+            profilePeriodsTbody.appendChild(tr);
+        });
+    }
+};
+
+window.setProfilePeriodsPreset = function(preset) {
+    if (!profilePeriodsFrom || !profilePeriodsTo) return;
+    const now = new Date();
+
+    if (preset === 'this_month') {
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        profilePeriodsFrom.value = firstDay.toLocaleDateString('en-CA');
+        profilePeriodsTo.value = lastDay.toLocaleDateString('en-CA');
+    } else if (preset === 'last_month') {
+        const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+        profilePeriodsFrom.value = firstDay.toLocaleDateString('en-CA');
+        profilePeriodsTo.value = lastDay.toLocaleDateString('en-CA');
+    } else if (preset === 'this_year') {
+        const firstDay = new Date(now.getFullYear(), 0, 1);
+        const lastDay = new Date(now.getFullYear(), 11, 31);
+        profilePeriodsFrom.value = firstDay.toLocaleDateString('en-CA');
+        profilePeriodsTo.value = lastDay.toLocaleDateString('en-CA');
+    } else if (preset === 'all') {
+        profilePeriodsFrom.value = '';
+        profilePeriodsTo.value = '';
+    }
+    renderProfilePeriods();
+};
+
+window.clearProfilePeriodsFilter = function() {
+    if (profilePeriodsFrom) profilePeriodsFrom.value = '';
+    if (profilePeriodsTo) profilePeriodsTo.value = '';
+    renderProfilePeriods();
+};
+
+if (profilePeriodsFrom) profilePeriodsFrom.addEventListener('change', () => renderProfilePeriods());
+if (profilePeriodsTo) profilePeriodsTo.addEventListener('change', () => renderProfilePeriods());
+
+
+window.printAttendanceReport = function(staffMember, fromVal, toVal) {
+    if (!staffMember) staffMember = window.currentProfileStaffData;
+    if (!staffMember) {
+        showNotification('No staff data to print.', 'error');
+        return;
+    }
+
+    if (fromVal === undefined) fromVal = profileAttendanceFrom ? profileAttendanceFrom.value : '';
+    if (toVal === undefined) toVal = profileAttendanceTo ? profileAttendanceTo.value : '';
+
+    const records = staffMember.attendance || [];
+    let filtered = records.filter(r => {
+        if (!r.date) return false;
+        if (fromVal && r.date < fromVal) return false;
+        if (toVal && r.date > toVal) return false;
+        return true;
+    });
+
+    // Sort ascending by date for a chronological attendance statement
+    filtered.sort((a,b) => new Date(a.date) - new Date(b.date));
+
+    let totalMinutes = 0;
+    let rowsHTML = '';
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    if (filtered.length > 0) {
+        filtered.forEach((r, idx) => {
+            const mins = calculateWorkMinutes(r.entryTime, r.exitTime);
+            totalMinutes += mins;
+            const hoursStr = formatWorkHours(mins);
+            const d = new Date(r.date + 'T00:00:00');
+            const dayName = !isNaN(d) ? dayNames[d.getDay()] : '-';
+
+            rowsHTML += `
+                <tr>
+                    <td style="padding: 7px 10px; border: 1px solid #cbd5e1; text-align: center; color: #64748b;">${idx + 1}</td>
+                    <td style="padding: 7px 10px; border: 1px solid #cbd5e1; font-weight: 600;">${r.date}</td>
+                    <td style="padding: 7px 10px; border: 1px solid #cbd5e1; color: #475569;">${dayName}</td>
+                    <td style="padding: 7px 10px; border: 1px solid #cbd5e1; text-align: center;">${formatTimeAMPM(r.entryTime)}</td>
+                    <td style="padding: 7px 10px; border: 1px solid #cbd5e1; text-align: center;">${formatTimeAMPM(r.exitTime)}</td>
+                    <td style="padding: 7px 10px; border: 1px solid #cbd5e1; text-align: right; font-weight: 700; color: #1e40af;">${hoursStr}</td>
+                </tr>
+            `;
+        });
+    } else {
+        rowsHTML = `<tr><td colspan="6" style="padding: 16px; text-align: center; color: #6b7280;">No attendance records found for this period.</td></tr>`;
+    }
+
+    const totalHoursStr = formatWorkHours(totalMinutes);
+    const avgMinutes = filtered.length > 0 ? Math.round(totalMinutes / filtered.length) : 0;
+    const avgHoursStr = formatWorkHours(avgMinutes);
+
+    let dateRangeText = 'All Recorded Attendance';
+    if (fromVal && toVal) {
+        dateRangeText = `${fromVal} to ${toVal}`;
+    } else if (fromVal) {
+        dateRangeText = `From ${fromVal} onwards`;
+    } else if (toVal) {
+        dateRangeText = `Up to ${toVal}`;
+    }
+
+    const printWin = window.open('', '_blank');
+    printWin.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Attendance Report - ${staffMember.full_name}</title>
+            <style>
+                @page { size: A4 portrait; margin: 12mm 15mm; }
+                body {
+                    font-family: 'Segoe UI', Arial, sans-serif;
+                    color: #1e293b;
+                    margin: 0;
+                    padding: 15px;
+                    line-height: 1.4;
+                }
+                .header {
+                    text-align: center;
+                    border-bottom: 2px solid #4f46e5;
+                    padding-bottom: 12px;
+                    margin-bottom: 18px;
+                }
+                .college-name {
+                    font-size: 22px;
+                    font-weight: 800;
+                    color: #312e81;
+                    letter-spacing: 0.5px;
+                }
+                .report-title {
+                    font-size: 15px;
+                    font-weight: 600;
+                    color: #4f46e5;
+                    margin-top: 4px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                .info-card {
+                    display: grid;
+                    grid-template-columns: 3fr 2fr;
+                    gap: 15px;
+                    background: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 8px;
+                    padding: 12px 16px;
+                    margin-bottom: 18px;
+                    font-size: 13px;
+                }
+                .info-row { margin-bottom: 4px; }
+                .info-row strong { color: #475569; display: inline-block; width: 105px; }
+                .stats-container {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 12px;
+                    margin-bottom: 20px;
+                }
+                .stat-box {
+                    background: #f0fdf4;
+                    border: 1px solid #bbf7d0;
+                    border-radius: 8px;
+                    padding: 10px 14px;
+                    text-align: center;
+                }
+                .stat-box:nth-child(2) {
+                    background: #eff6ff;
+                    border-color: #bfdbfe;
+                }
+                .stat-box:nth-child(3) {
+                    background: #faf5ff;
+                    border-color: #e9d5ff;
+                }
+                .stat-title {
+                    font-size: 11px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    color: #64748b;
+                }
+                .stat-val {
+                    font-size: 18px;
+                    font-weight: 800;
+                    color: #0f172a;
+                    margin-top: 2px;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 12px;
+                    margin-bottom: 35px;
+                }
+                th {
+                    background-color: #f1f5f9;
+                    color: #334155;
+                    font-weight: 700;
+                    padding: 8px 10px;
+                    border: 1px solid #cbd5e1;
+                    text-transform: uppercase;
+                    font-size: 11px;
+                }
+                tr:nth-child(even) { background-color: #f8fafc; }
+                .signatures {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-top: 50px;
+                    padding: 0 40px;
+                }
+                .sig-box {
+                    text-align: center;
+                    border-top: 1px dashed #64748b;
+                    padding-top: 8px;
+                    width: 170px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: #475569;
+                }
+                .footer {
+                    margin-top: 30px;
+                    text-align: center;
+                    font-size: 10px;
+                    color: #94a3b8;
+                    border-top: 1px solid #e2e8f0;
+                    padding-top: 8px;
+                }
+                @media print {
+                    body { padding: 0; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div class="college-name">ZAINABIYYA LADIES COLLEGE</div>
+                <div class="report-title">Staff Attendance Statement</div>
+            </div>
+
+            <div class="info-card">
+                <div>
+                    <div class="info-row"><strong>Staff Name:</strong> ${staffMember.full_name}</div>
+                    <div class="info-row"><strong>Staff ID:</strong> #${staffMember.staff_id}</div>
+                    <div class="info-row"><strong>Designation:</strong> ${staffMember.grade || '-'}${staffMember.emp_type ? ` (${staffMember.emp_type})` : ''}</div>
+                </div>
+                <div>
+                    <div class="info-row"><strong>Contact:</strong> ${staffMember.parent_contact || '-'}</div>
+                    <div class="info-row"><strong>Period:</strong> ${dateRangeText}</div>
+                    <div class="info-row"><strong>Generated On:</strong> ${new Date().toLocaleDateString()}</div>
+                </div>
+            </div>
+
+            <div class="stats-container">
+                <div class="stat-box">
+                    <div class="stat-title">Days Present</div>
+                    <div class="stat-val" style="color:#15803d;">${filtered.length} Days</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Total Work Hours</div>
+                    <div class="stat-val" style="color:#1d4ed8;">${totalHoursStr}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Average Hours / Day</div>
+                    <div class="stat-val" style="color:#7e22ce;">${avgHoursStr}</div>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 35px; text-align: center;">#</th>
+                        <th>Date</th>
+                        <th>Day</th>
+                        <th style="text-align: center;">Entry Time</th>
+                        <th style="text-align: center;">Exit Time</th>
+                        <th style="text-align: right;">Work Hours</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHTML}
+                </tbody>
+                <tfoot>
+                    <tr style="background: #e2e8f0; font-weight: bold;">
+                        <td colspan="5" style="padding: 8px 10px; text-align: right; border: 1px solid #cbd5e1;">TOTAL WORKED HOURS:</td>
+                        <td style="padding: 8px 10px; text-align: right; border: 1px solid #cbd5e1; color: #1e40af;">${totalHoursStr}</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <div class="signatures">
+                <div class="sig-box">Staff Signature</div>
+                <div class="sig-box">Authorized Signature</div>
+            </div>
+
+            <div class="footer">
+                Report generated via Zainabiyya System on ${new Date().toLocaleString()}
+            </div>
+
+            <script>
+                window.onload = function() {
+                    window.print();
+                };
+            </script>
+        </body>
+        </html>
+    `);
+    printWin.document.close();
+};
+
+window.printAttendanceReportFromModal = function() {
+    printAttendanceReport(
+        window.currentManageAttendanceStaff,
+        manageAttendanceFrom ? manageAttendanceFrom.value : '',
+        manageAttendanceTo ? manageAttendanceTo.value : ''
+    );
+};
+
+window.printPeriodsReport = function(staffMember, fromVal, toVal) {
+    if (!staffMember) staffMember = window.currentProfileStaffData;
+    if (!staffMember) {
+        showNotification('No staff data to print.', 'error');
+        return;
+    }
+
+    if (fromVal === undefined) fromVal = profilePeriodsFrom ? profilePeriodsFrom.value : '';
+    if (toVal === undefined) toVal = profilePeriodsTo ? profilePeriodsTo.value : '';
+
+    const records = staffMember.periods || [];
+    let filtered = records.filter(r => {
+        if (fromVal && (r.toDate || r.fromDate) < fromVal) return false;
+        if (toVal && (r.fromDate || r.toDate) > toVal) return false;
+        return true;
+    });
+
+    // Chronological order for report
+    filtered.sort((a,b) => new Date(a.fromDate) - new Date(b.fromDate));
+
+    const totalAllocated = filtered.reduce((sum, r) => sum + (parseInt(r.allocated) || 0), 0);
+    const totalConducted = filtered.reduce((sum, r) => sum + (parseInt(r.conducted) || 0), 0);
+    const totalMissed = filtered.reduce((sum, r) => sum + (parseInt(r.missed) || 0), 0);
+    const completionRate = totalAllocated > 0 ? Math.round((totalConducted / totalAllocated) * 100) : 0;
+
+    let rowsHTML = '';
+    if (filtered.length > 0) {
+        filtered.forEach((r, idx) => {
+            const alloc = parseInt(r.allocated) || 0;
+            const cond = parseInt(r.conducted) || 0;
+            const miss = parseInt(r.missed) || 0;
+            const pct = alloc > 0 ? Math.round((cond / alloc) * 100) : 0;
+
+            rowsHTML += `
+                <tr>
+                    <td style="padding: 7px 10px; border: 1px solid #cbd5e1; text-align: center; color: #64748b;">${idx + 1}</td>
+                    <td style="padding: 7px 10px; border: 1px solid #cbd5e1; font-weight: 600;">${r.fromDate} &nbsp;to&nbsp; ${r.toDate}</td>
+                    <td style="padding: 7px 10px; border: 1px solid #cbd5e1; text-align: center; font-weight: 600;">${alloc}</td>
+                    <td style="padding: 7px 10px; border: 1px solid #cbd5e1; text-align: center; font-weight: 700; color: #15803d;">${cond}</td>
+                    <td style="padding: 7px 10px; border: 1px solid #cbd5e1; text-align: center; font-weight: 700; color: #b91c1c;">${miss}</td>
+                    <td style="padding: 7px 10px; border: 1px solid #cbd5e1; text-align: center; font-weight: 600; color: #4338ca;">${pct}%</td>
+                    <td style="padding: 7px 10px; border: 1px solid #cbd5e1; color: #475569; font-size: 11px;">${r.reason || '-'}</td>
+                </tr>
+            `;
+        });
+    } else {
+        rowsHTML = `<tr><td colspan="7" style="padding: 16px; text-align: center; color: #6b7280;">No period records found for this date range.</td></tr>`;
+    }
+
+    let dateRangeText = 'All Recorded Periods';
+    if (fromVal && toVal) {
+        dateRangeText = `${fromVal} to ${toVal}`;
+    } else if (fromVal) {
+        dateRangeText = `From ${fromVal} onwards`;
+    } else if (toVal) {
+        dateRangeText = `Up to ${toVal}`;
+    }
+
+    const printWin = window.open('', '_blank');
+    printWin.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Weekly Periods Report - ${staffMember.full_name}</title>
+            <style>
+                @page { size: A4 portrait; margin: 12mm 15mm; }
+                body {
+                    font-family: 'Segoe UI', Arial, sans-serif;
+                    color: #1e293b;
+                    margin: 0;
+                    padding: 15px;
+                    line-height: 1.4;
+                }
+                .header {
+                    text-align: center;
+                    border-bottom: 2px solid #4f46e5;
+                    padding-bottom: 12px;
+                    margin-bottom: 18px;
+                }
+                .college-name {
+                    font-size: 22px;
+                    font-weight: 800;
+                    color: #312e81;
+                    letter-spacing: 0.5px;
+                }
+                .report-title {
+                    font-size: 15px;
+                    font-weight: 600;
+                    color: #4f46e5;
+                    margin-top: 4px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                .info-card {
+                    display: grid;
+                    grid-template-columns: 3fr 2fr;
+                    gap: 15px;
+                    background: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 8px;
+                    padding: 12px 16px;
+                    margin-bottom: 18px;
+                    font-size: 13px;
+                }
+                .info-row { margin-bottom: 4px; }
+                .info-row strong { color: #475569; display: inline-block; width: 105px; }
+                .stats-container {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 10px;
+                    margin-bottom: 20px;
+                }
+                .stat-box {
+                    background: #f8fafc;
+                    border: 1px solid #cbd5e1;
+                    border-radius: 8px;
+                    padding: 10px 12px;
+                    text-align: center;
+                }
+                .stat-box.alloc { background: #f8fafc; border-color: #cbd5e1; }
+                .stat-box.cond { background: #f0fdf4; border-color: #bbf7d0; }
+                .stat-box.miss { background: #fef2f2; border-color: #fecaca; }
+                .stat-box.rate { background: #eef2ff; border-color: #c7d2fe; }
+                .stat-title {
+                    font-size: 10px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    color: #64748b;
+                }
+                .stat-val {
+                    font-size: 18px;
+                    font-weight: 800;
+                    color: #0f172a;
+                    margin-top: 2px;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 12px;
+                    margin-bottom: 35px;
+                }
+                th {
+                    background-color: #f1f5f9;
+                    color: #334155;
+                    font-weight: 700;
+                    padding: 8px 10px;
+                    border: 1px solid #cbd5e1;
+                    text-transform: uppercase;
+                    font-size: 11px;
+                }
+                tr:nth-child(even) { background-color: #f8fafc; }
+                .signatures {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-top: 50px;
+                    padding: 0 40px;
+                }
+                .sig-box {
+                    text-align: center;
+                    border-top: 1px dashed #64748b;
+                    padding-top: 8px;
+                    width: 170px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: #475569;
+                }
+                .footer {
+                    margin-top: 30px;
+                    text-align: center;
+                    font-size: 10px;
+                    color: #94a3b8;
+                    border-top: 1px solid #e2e8f0;
+                    padding-top: 8px;
+                }
+                @media print {
+                    body { padding: 0; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div class="college-name">ZAINABIYYA LADIES COLLEGE</div>
+                <div class="report-title">Weekly Teaching Periods Statement</div>
+            </div>
+
+            <div class="info-card">
+                <div>
+                    <div class="info-row"><strong>Staff Name:</strong> ${staffMember.full_name}</div>
+                    <div class="info-row"><strong>Staff ID:</strong> #${staffMember.staff_id}</div>
+                    <div class="info-row"><strong>Designation:</strong> ${staffMember.grade || '-'}${staffMember.emp_type ? ` (${staffMember.emp_type})` : ''}</div>
+                </div>
+                <div>
+                    <div class="info-row"><strong>Contact:</strong> ${staffMember.parent_contact || '-'}</div>
+                    <div class="info-row"><strong>Period:</strong> ${dateRangeText}</div>
+                    <div class="info-row"><strong>Generated On:</strong> ${new Date().toLocaleDateString()}</div>
+                </div>
+            </div>
+
+            <div class="stats-container">
+                <div class="stat-box alloc">
+                    <div class="stat-title">Allocated</div>
+                    <div class="stat-val" style="color:#334155;">${totalAllocated}</div>
+                </div>
+                <div class="stat-box cond">
+                    <div class="stat-title">Conducted</div>
+                    <div class="stat-val" style="color:#15803d;">${totalConducted}</div>
+                </div>
+                <div class="stat-box miss">
+                    <div class="stat-title">Missed</div>
+                    <div class="stat-val" style="color:#b91c1c;">${totalMissed}</div>
+                </div>
+                <div class="stat-box rate">
+                    <div class="stat-title">Completion</div>
+                    <div class="stat-val" style="color:#4338ca;">${completionRate}%</div>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 30px; text-align: center;">#</th>
+                        <th>Date Range</th>
+                        <th style="text-align: center; width: 65px;">Allocated</th>
+                        <th style="text-align: center; width: 70px;">Conducted</th>
+                        <th style="text-align: center; width: 60px;">Missed</th>
+                        <th style="text-align: center; width: 75px;">Completed</th>
+                        <th>Reason / Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHTML}
+                </tbody>
+                <tfoot>
+                    <tr style="background: #e2e8f0; font-weight: bold;">
+                        <td colspan="2" style="padding: 8px 10px; text-align: right; border: 1px solid #cbd5e1;">TOTALS:</td>
+                        <td style="padding: 8px 10px; text-align: center; border: 1px solid #cbd5e1; font-weight: 700;">${totalAllocated}</td>
+                        <td style="padding: 8px 10px; text-align: center; border: 1px solid #cbd5e1; font-weight: 700; color: #15803d;">${totalConducted}</td>
+                        <td style="padding: 8px 10px; text-align: center; border: 1px solid #cbd5e1; font-weight: 700; color: #b91c1c;">${totalMissed}</td>
+                        <td style="padding: 8px 10px; text-align: center; border: 1px solid #cbd5e1; font-weight: 700; color: #4338ca;">${completionRate}%</td>
+                        <td style="padding: 8px 10px; border: 1px solid #cbd5e1;"></td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <div class="signatures">
+                <div class="sig-box">Staff Signature</div>
+                <div class="sig-box">Principal / Authorized Signature</div>
+            </div>
+
+            <div class="footer">
+                Report generated via Zainabiyya System on ${new Date().toLocaleString()}
+            </div>
+
+            <script>
+                window.onload = function() {
+                    window.print();
+                };
+            </script>
+        </body>
+        </html>
+    `);
+    printWin.document.close();
+};
+
+window.printPeriodsReportFromModal = function() {
+    printPeriodsReport(
+        window.currentManagePeriodsStaff,
+        managePeriodsFrom ? managePeriodsFrom.value : '',
+        managePeriodsTo ? managePeriodsTo.value : ''
+    );
+};
 
 window.printStaffProfile = async function() {
     if (!window.currentProfileId) return;
     
-    const staffMember = (await db.collection("staff").doc(window.currentProfileId.toString()).get()).data();
+    const collectionName = currentFilter === 'active' ? "staff" : "past_staff";
+    const staffMember = (await db.collection(collectionName).doc(window.currentProfileId.toString()).get()).data();
     if (!staffMember) return;
 
     let dobText = staffMember.dob || '-';
@@ -685,6 +1688,41 @@ window.printStaffProfile = async function() {
         const names = staffMember.full_name.split(' ');
         const initials = names.length > 1 ? names[0][0] + names[names.length - 1][0] : names[0][0];
         avatarHTML = `<div style="width:120px; height:120px; border-radius:50%; background:#e5e7eb; display:flex; align-items:center; justify-content:center; font-size:36px; font-weight:bold; color:#4b5563;">${initials.toUpperCase()}</div>`;
+    }
+
+    let attendanceHTML = '';
+    const attRecords = staffMember.attendance || [];
+    const pFrom = profileAttendanceFrom ? profileAttendanceFrom.value : '';
+    const pTo = profileAttendanceTo ? profileAttendanceTo.value : '';
+    let filteredAtt = attRecords.filter(r => {
+        if (!r.date) return false;
+        if (pFrom && r.date < pFrom) return false;
+        if (pTo && r.date > pTo) return false;
+        return true;
+    }).sort((a,b) => new Date(b.date) - new Date(a.date));
+
+    let printTotalMinutes = 0;
+    if (filteredAtt.length > 0) {
+        filteredAtt.forEach(a => {
+            const m = calculateWorkMinutes(a.entryTime, a.exitTime);
+            printTotalMinutes += m;
+            attendanceHTML += `
+                <tr>
+                    <td style="padding:8px; border:1px solid #e5e7eb;">${a.date}</td>
+                    <td style="padding:8px; border:1px solid #e5e7eb;">${formatTimeAMPM(a.entryTime)}</td>
+                    <td style="padding:8px; border:1px solid #e5e7eb;">${formatTimeAMPM(a.exitTime)}</td>
+                    <td style="padding:8px; border:1px solid #e5e7eb; text-align:right; font-weight:bold;">${formatWorkHours(m)}</td>
+                </tr>
+            `;
+        });
+        attendanceHTML += `
+            <tr style="background:#f9fafb; font-weight:bold;">
+                <td colspan="3" style="padding:8px; border:1px solid #e5e7eb; text-align:right;">Total Work Hours:</td>
+                <td style="padding:8px; border:1px solid #e5e7eb; text-align:right; color:#2563eb;">${formatWorkHours(printTotalMinutes)}</td>
+            </tr>
+        `;
+    } else {
+        attendanceHTML = '<tr><td colspan="4" style="padding:8px; text-align:center; color:#6b7280;">No attendance records found.</td></tr>';
     }
 
     const printWindow = window.open('', '_blank');
@@ -752,6 +1790,21 @@ window.printStaffProfile = async function() {
                 </tbody>
             </table>
 
+            <div class="section-title">Attendance History ${pFrom || pTo ? `(${pFrom || 'Start'} to ${pTo || 'End'})` : ''}</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Entry Time</th>
+                        <th>Exit Time</th>
+                        <th style="text-align:right;">Work Hours</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${attendanceHTML}
+                </tbody>
+            </table>
+
             <div class="section-title">Attached Documents</div>
             <div style="background:#f9fafb; padding:15px; border-radius:8px; border:1px solid #e5e7eb;">
                 ${docsHTML}
@@ -773,21 +1826,24 @@ window.printStaffProfile = async function() {
 };
 
 // Salary Flow
-window.openSalaryModal = async function(id) {
-    const staffMember = (await db.collection("staff").doc(id.toString()).get()).data();
-    if(staffMember) {
-        addSalaryStaffId.value = staffMember.staff_id;
-        salaryStaffName.textContent = staffMember.full_name;
-        newSalaryDate.valueAsDate = new Date();
-        renderSalaries(staffMember);
-        salaryModal.classList.remove('hidden');
-        salaryModal.classList.add('flex');
+window.openSalaryModal = function(id, name) {
+    console.log("openSalaryModal clicked for ID:", id);
+    if (salaryStaffName) salaryStaffName.textContent = name;
+    if (addSalaryStaffId) addSalaryStaffId.value = id;
+    loadSalaries(id);
+    if (salaryModal) {
+        salaryModal.style.display = 'flex';
+        salaryModal.style.zIndex = '9999';
     }
 };
 
+async function loadSalaries(id) {
+    const staff = (await db.collection("staff").doc(id.toString()).get()).data();
+    if(staff) renderSalaries(staff);
+}
+
 window.closeSalaryModal = function() {
-    salaryModal.classList.add('hidden');
-    salaryModal.classList.remove('flex');
+    salaryModal.style.display = 'none';
     addSalaryForm.reset();
 }
 
@@ -838,30 +1894,395 @@ addSalaryForm.addEventListener('submit', async (e) => {
     renderSalaries(staffMember);
 });
 
-window.deleteSalary = async function(staffId, salaryId) {
-    const staffMember = (await db.collection("staff").doc(staffId.toString()).get()).data();
-    if(staffMember && staffMember.salaries) {
-        staffMember.salaries = staffMember.salaries.filter(s => s.id !== salaryId);
-        await db.collection("staff").doc(staffMember.staff_id.toString()).set(staffMember);
-        renderSalaries(staffMember);
-    }
+window.deleteSalary = function(staffId, salaryId) {
+    openGenericConfirmModal("Delete Salary", "Are you sure you want to delete this salary record?", async () => {
+        const staffMember = (await db.collection("staff").doc(staffId.toString()).get()).data();
+        if(staffMember && staffMember.salaries) {
+            staffMember.salaries = staffMember.salaries.filter(s => s.id !== salaryId);
+            await db.collection("staff").doc(staffMember.staff_id.toString()).set(staffMember);
+            renderSalaries(staffMember);
+        }
+    });
 };
 
 // Docs Flow
-window.openDocsModal = async function(id) {
-    const staffMember = (await db.collection("staff").doc(id.toString()).get()).data();
-    if(staffMember) {
-        addDocStaffId.value = staffMember.staff_id;
-        docStaffName.textContent = staffMember.full_name;
-        renderDocs(staffMember);
-        docsModal.classList.remove('hidden');
-        docsModal.classList.add('flex');
+// Attendance Flow
+window.openAttendanceModal = function(id, name) {
+    console.log("openAttendanceModal clicked for ID:", id);
+    if (attendanceStaffName) attendanceStaffName.textContent = name;
+    if (addAttendanceStaffId) addAttendanceStaffId.value = id;
+    if (manageAttendanceFrom) manageAttendanceFrom.value = '';
+    if (manageAttendanceTo) manageAttendanceTo.value = '';
+    loadAttendance(id);
+    if (attendanceModal) {
+        attendanceModal.style.display = 'flex';
+        attendanceModal.style.zIndex = '9999';
     }
 };
 
+async function loadAttendance(id) {
+    let docSnap = await db.collection("staff").doc(id.toString()).get();
+    if (!docSnap.exists) {
+        docSnap = await db.collection("past_staff").doc(id.toString()).get();
+    }
+    const staff = docSnap.data();
+    if(staff) renderAttendance(staff);
+}
+
+window.closeAttendanceModal = function() {
+    attendanceModal.style.display = 'none';
+    addAttendanceForm.reset();
+}
+
+function formatTimeAMPM(time24) {
+    if(!time24) return '-';
+    let [h, m] = time24.split(':');
+    let hours = parseInt(h);
+    let ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; 
+    return `${hours}:${m} ${ampm}`;
+}
+
+window.renderAttendance = function(staffMember) {
+    if (!staffMember) staffMember = window.currentManageAttendanceStaff;
+    if (!staffMember) return;
+    window.currentManageAttendanceStaff = staffMember;
+
+    attendanceTbody.innerHTML = '';
+    const records = staffMember.attendance || [];
+
+    if (records.length === 0) {
+        attendanceTbody.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-gray-500">No attendance records yet.</td></tr>';
+        if (manageAttendanceBadge) manageAttendanceBadge.textContent = '0';
+        return;
+    }
+    
+    // Ensure every record has a unique id
+    let needsUpdate = false;
+    records.forEach((r, idx) => {
+        if (r.id === undefined || r.id === null) {
+            r.id = Date.now() + idx;
+            needsUpdate = true;
+        }
+    });
+    if (needsUpdate) {
+        const coll = currentFilter === 'active' ? "staff" : "past_staff";
+        db.collection(coll).doc(staffMember.staff_id.toString()).set(staffMember).catch(console.error);
+    }
+
+    const fromVal = manageAttendanceFrom ? manageAttendanceFrom.value : '';
+    const toVal = manageAttendanceTo ? manageAttendanceTo.value : '';
+
+    let filtered = records.filter(r => {
+        if (!r.date) return false;
+        if (fromVal && r.date < fromVal) return false;
+        if (toVal && r.date > toVal) return false;
+        return true;
+    });
+
+    if (manageAttendanceBadge) {
+        if (fromVal || toVal) {
+            manageAttendanceBadge.textContent = `${filtered.length} of ${records.length}`;
+        } else {
+            manageAttendanceBadge.textContent = `${records.length}`;
+        }
+    }
+
+    const sortedAttendance = [...filtered].sort((a,b) => new Date(b.date) - new Date(a.date));
+
+    if (sortedAttendance.length === 0) {
+        attendanceTbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-gray-500">No attendance records found for date range.</td></tr>';
+        return;
+    }
+
+    sortedAttendance.forEach(record => {
+        const mins = calculateWorkMinutes(record.entryTime, record.exitTime);
+        const hoursStr = formatWorkHours(mins);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="py-3 px-4 font-semibold text-gray-800">${record.date}</td>
+            <td class="py-3 px-4 text-gray-600">${formatTimeAMPM(record.entryTime)}</td>
+            <td class="py-3 px-4 text-gray-600">${formatTimeAMPM(record.exitTime)}</td>
+            <td class="py-3 px-4 text-center font-medium text-blue-600">${hoursStr}</td>
+            <td class="py-3 px-4 text-right">
+                <button onclick="deleteAttendance(${staffMember.staff_id}, ${record.id})" class="text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </td>
+        `;
+        attendanceTbody.appendChild(tr);
+    });
+};
+
+window.clearManageAttendanceFilter = function() {
+    if (manageAttendanceFrom) manageAttendanceFrom.value = '';
+    if (manageAttendanceTo) manageAttendanceTo.value = '';
+    renderAttendance();
+};
+
+if (manageAttendanceFrom) manageAttendanceFrom.addEventListener('change', () => renderAttendance());
+if (manageAttendanceTo) manageAttendanceTo.addEventListener('change', () => renderAttendance());
+
+addAttendanceForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = parseInt(addAttendanceStaffId.value);
+    let collectionName = "staff";
+    let docRef = db.collection("staff").doc(id.toString());
+    let docSnap = await docRef.get();
+    if (!docSnap.exists) {
+        collectionName = "past_staff";
+        docRef = db.collection("past_staff").doc(id.toString());
+        docSnap = await docRef.get();
+    }
+    const staffMember = docSnap.data();
+    
+    if(!staffMember.attendance) staffMember.attendance = [];
+    staffMember.attendance.push({
+        id: Date.now(),
+        date: newAttendanceDate.value,
+        entryTime: newAttendanceEntryTime.value,
+        exitTime: newAttendanceExitTime.value
+    });
+    
+    await db.collection(collectionName).doc(staffMember.staff_id.toString()).set(staffMember);
+    addAttendanceForm.reset();
+    newAttendanceDate.valueAsDate = new Date();
+    renderAttendance(staffMember);
+
+    if (window.currentProfileId && window.currentProfileId.toString() === id.toString() && profileModal && profileModal.style.display !== 'none') {
+        viewStaffProfile(id);
+    }
+
+    showNotification('Attendance added successfully!', 'success');
+});
+
+window.deleteAttendance = function(staffId, recordId) {
+    openGenericConfirmModal("Delete Attendance", "Are you sure you want to delete this record?", async () => {
+        let collectionName = "staff";
+        let docRef = db.collection("staff").doc(staffId.toString());
+        let docSnap = await docRef.get();
+        if (!docSnap.exists) {
+            collectionName = "past_staff";
+            docRef = db.collection("past_staff").doc(staffId.toString());
+            docSnap = await docRef.get();
+        }
+        const staffMember = docSnap.data();
+        if(staffMember && staffMember.attendance) {
+            staffMember.attendance = staffMember.attendance.filter(r => {
+                if (r.id !== undefined && r.id !== null) {
+                    return r.id != recordId;
+                }
+                return r.date !== recordId;
+            });
+            await db.collection(collectionName).doc(staffMember.staff_id.toString()).set(staffMember);
+            renderAttendance(staffMember);
+
+            if (window.currentProfileId && window.currentProfileId.toString() === staffId.toString() && profileModal && profileModal.style.display !== 'none') {
+                viewStaffProfile(staffId);
+            }
+
+            showNotification('Attendance record deleted!', 'success');
+        }
+    });
+};
+
+// Periods Flow
+window.openPeriodsModal = function(id, name) {
+    if (periodsStaffName) periodsStaffName.textContent = name;
+    if (addPeriodsStaffId) addPeriodsStaffId.value = id;
+    if (managePeriodsFrom) managePeriodsFrom.value = '';
+    if (managePeriodsTo) managePeriodsTo.value = '';
+    loadPeriods(id);
+    if (periodsModal) {
+        periodsModal.style.display = 'flex';
+        periodsModal.style.zIndex = '9999';
+    }
+};
+
+async function loadPeriods(id) {
+    let docSnap = await db.collection("staff").doc(id.toString()).get();
+    if (!docSnap.exists) {
+        docSnap = await db.collection("past_staff").doc(id.toString()).get();
+    }
+    const staff = docSnap.data();
+    if(staff) renderPeriods(staff);
+}
+
+window.closePeriodsModal = function() {
+    periodsModal.style.display = 'none';
+    addPeriodsForm.reset();
+    newPeriodReasonContainer.classList.add('hidden');
+    newPeriodReason.removeAttribute('required');
+}
+
+window.renderPeriods = function(staffMember) {
+    if (!staffMember) staffMember = window.currentManagePeriodsStaff;
+    if (!staffMember) return;
+    window.currentManagePeriodsStaff = staffMember;
+
+    periodsTbody.innerHTML = '';
+    const records = staffMember.periods || [];
+
+    if (records.length === 0) {
+        periodsTbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-gray-500">No period records yet.</td></tr>';
+        if (managePeriodsBadge) managePeriodsBadge.textContent = '0';
+        return;
+    }
+
+    const fromVal = managePeriodsFrom ? managePeriodsFrom.value : '';
+    const toVal = managePeriodsTo ? managePeriodsTo.value : '';
+
+    let filtered = records.filter(r => {
+        if (fromVal && (r.toDate || r.fromDate) < fromVal) return false;
+        if (toVal && (r.fromDate || r.toDate) > toVal) return false;
+        return true;
+    });
+
+    if (managePeriodsBadge) {
+        if (fromVal || toVal) {
+            managePeriodsBadge.textContent = `${filtered.length} of ${records.length}`;
+        } else {
+            managePeriodsBadge.textContent = `${records.length}`;
+        }
+    }
+
+    if (filtered.length === 0) {
+        periodsTbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-gray-500">No period records found for date range.</td></tr>';
+        return;
+    }
+    
+    const sortedPeriods = [...filtered].sort((a,b) => new Date(b.fromDate) - new Date(a.fromDate));
+
+    sortedPeriods.forEach(record => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="py-3 px-4 font-semibold text-gray-800">${record.fromDate} to ${record.toDate}</td>
+            <td class="py-3 px-2 text-center text-gray-600">${record.allocated}</td>
+            <td class="py-3 px-2 text-center text-green-600 font-semibold">${record.conducted}</td>
+            <td class="py-3 px-2 text-center text-red-500 font-bold" title="${record.reason || ''}">${record.missed}</td>
+            <td class="py-3 px-4 text-right">
+                <button onclick="deletePeriod(${staffMember.staff_id}, ${record.id})" class="text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </td>
+        `;
+        periodsTbody.appendChild(tr);
+    });
+};
+
+window.clearManagePeriodsFilter = function() {
+    if (managePeriodsFrom) managePeriodsFrom.value = '';
+    if (managePeriodsTo) managePeriodsTo.value = '';
+    renderPeriods();
+};
+
+if (managePeriodsFrom) managePeriodsFrom.addEventListener('change', () => renderPeriods());
+if (managePeriodsTo) managePeriodsTo.addEventListener('change', () => renderPeriods());
+
+function updateMissedPeriods() {
+    const allocated = parseInt(newPeriodAllocated.value) || 0;
+    const conducted = parseInt(newPeriodConducted.value) || 0;
+    let missed = allocated - conducted;
+    if (missed < 0) missed = 0;
+    newPeriodMissed.value = missed;
+    
+    if (missed > 0) {
+        newPeriodReasonContainer.classList.remove('hidden');
+        newPeriodReason.setAttribute('required', 'required');
+    } else {
+        newPeriodReasonContainer.classList.add('hidden');
+        newPeriodReason.removeAttribute('required');
+        newPeriodReason.value = '';
+    }
+}
+
+if (newPeriodAllocated) newPeriodAllocated.addEventListener('input', updateMissedPeriods);
+if (newPeriodConducted) newPeriodConducted.addEventListener('input', updateMissedPeriods);
+
+addPeriodsForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = parseInt(addPeriodsStaffId.value);
+    let collectionName = "staff";
+    let docRef = db.collection("staff").doc(id.toString());
+    let docSnap = await docRef.get();
+    if (!docSnap.exists) {
+        collectionName = "past_staff";
+        docRef = db.collection("past_staff").doc(id.toString());
+        docSnap = await docRef.get();
+    }
+    const staffMember = docSnap.data();
+    
+    if(!staffMember.periods) staffMember.periods = [];
+    staffMember.periods.push({
+        id: Date.now(),
+        fromDate: newPeriodFromDate.value,
+        toDate: newPeriodToDate.value,
+        allocated: parseInt(newPeriodAllocated.value),
+        conducted: parseInt(newPeriodConducted.value),
+        missed: parseInt(newPeriodMissed.value),
+        reason: newPeriodReason.value.trim()
+    });
+    
+    await db.collection(collectionName).doc(staffMember.staff_id.toString()).set(staffMember);
+    addPeriodsForm.reset();
+    newPeriodReasonContainer.classList.add('hidden');
+    newPeriodReason.removeAttribute('required');
+    newPeriodFromDate.valueAsDate = new Date();
+    newPeriodToDate.valueAsDate = new Date();
+    renderPeriods(staffMember);
+
+    if (window.currentProfileId && window.currentProfileId.toString() === id.toString() && profileModal && profileModal.style.display !== 'none') {
+        viewStaffProfile(id);
+    }
+
+    showNotification('Weekly periods added successfully!', 'success');
+});
+
+window.deletePeriod = function(staffId, recordId) {
+    openGenericConfirmModal("Delete Periods Record", "Are you sure you want to delete this record?", async () => {
+        let collectionName = "staff";
+        let docRef = db.collection("staff").doc(staffId.toString());
+        let docSnap = await docRef.get();
+        if (!docSnap.exists) {
+            collectionName = "past_staff";
+            docRef = db.collection("past_staff").doc(staffId.toString());
+            docSnap = await docRef.get();
+        }
+        const staffMember = docSnap.data();
+        if(staffMember && staffMember.periods) {
+            staffMember.periods = staffMember.periods.filter(r => r.id !== recordId);
+            await db.collection(collectionName).doc(staffMember.staff_id.toString()).set(staffMember);
+            renderPeriods(staffMember);
+
+            if (window.currentProfileId && window.currentProfileId.toString() === staffId.toString() && profileModal && profileModal.style.display !== 'none') {
+                viewStaffProfile(staffId);
+            }
+
+            showNotification('Periods record deleted!', 'success');
+        }
+    });
+};
+
+// Docs Flow
+window.openDocsModal = function(id, name) {
+    console.log("openDocsModal (staff) clicked for ID:", id);
+    if (docStaffName) docStaffName.textContent = name;
+    if (addDocStaffId) addDocStaffId.value = id;
+    loadDocs(id);
+    if (docsModal) {
+        docsModal.style.display = 'flex';
+        docsModal.style.zIndex = '9999';
+    }
+};
+
+async function loadDocs(id) {
+    const student = (await db.collection("staff").doc(id.toString()).get()).data();
+    if(student) renderDocs(student);
+}
+
 window.closeDocsModal = function() {
-    docsModal.classList.add('hidden');
-    docsModal.classList.remove('flex');
+    docsModal.style.display = 'none';
     addDocForm.reset();
 }
 
@@ -878,8 +2299,9 @@ function renderDocs(staffMember) {
         const tr = document.createElement('tr');
         let isPdf = false;
         if (doc.file) {
-            if (doc.file.startsWith('data:application/pdf')) isPdf = true;
-            else if (doc.file.toLowerCase().includes('.pdf?')) isPdf = true;
+            if (doc.format && doc.format.toLowerCase() === 'pdf') isPdf = true;
+            else if (doc.file.startsWith('data:application/pdf')) isPdf = true;
+            else if (doc.file.toLowerCase().includes('.pdf')) isPdf = true;
             else if (doc.storagePath && doc.storagePath.toLowerCase().endsWith('.pdf')) isPdf = true;
             else if (doc.name && doc.name.toLowerCase().endsWith('.pdf')) isPdf = true;
         }
@@ -890,10 +2312,10 @@ function renderDocs(staffMember) {
             <td class="py-3 px-4 text-right border-t border-gray-50">
                 <div class="flex justify-end gap-1">
                     ${isPdf 
-                        ? `<button onclick="window.open('${doc.file}', '_blank')" class="text-brand-400 hover:text-brand-600 p-1.5 hover:bg-brand-50 rounded-lg transition-colors" title="View PDF">
+                        ? `<a href="${(doc.file || '').replace('/upload/', '/upload/fl_attachment/')}" target="_blank" rel="noopener noreferrer" class="text-brand-400 hover:text-brand-600 p-1.5 hover:bg-brand-50 rounded-lg transition-colors" title="Download PDF">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                           </button>` 
-                        : `<button onclick="window.openImageViewer('${doc.file}')" class="text-brand-400 hover:text-brand-600 p-1.5 hover:bg-brand-50 rounded-lg transition-colors" title="View Image">
+                           </a>` 
+                        : `<button onclick="window.openImageViewer('${(doc.file || '').replace(/'/g, "\\'")}')" class="text-brand-400 hover:text-brand-600 p-1.5 hover:bg-brand-50 rounded-lg transition-colors" title="View Image">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                            </button>`
                     }
@@ -941,7 +2363,8 @@ addDocForm.addEventListener('submit', async (e) => {
                 id: docId,
                 name: newDocName.value.trim(),
                 file: downloadURL,
-                storagePath: data.public_id
+                storagePath: data.public_id,
+                format: data.format || file.name.split('.').pop()
             });
             
             await db.collection("staff").doc(staffMember.staff_id.toString()).set(staffMember);
@@ -958,17 +2381,20 @@ addDocForm.addEventListener('submit', async (e) => {
     }
 });
 
-window.deleteDoc = async function(staffId, docId) {
-    if(!confirm("Are you sure you want to delete this document?")) return;
-    const staffMember = (await db.collection("staff").doc(staffId.toString()).get()).data();
-    if(staffMember && staffMember.docs) {
-        staffMember.docs = staffMember.docs.filter(d => d.id !== docId);
-        await db.collection("staff").doc(staffMember.staff_id.toString()).set(staffMember);
-        renderDocs(staffMember);
-        loadStaffs(searchInput.value.toLowerCase());
-        showNotification('Document deleted successfully!', 'success');
-    }
+window.deleteDoc = function(staffId, docId) {
+    openGenericConfirmModal("Delete Document", "Are you sure you want to delete this document?", async () => {
+        const staffMember = (await db.collection("staff").doc(staffId.toString()).get()).data();
+        if(staffMember && staffMember.docs) {
+            staffMember.docs = staffMember.docs.filter(d => d.id !== docId);
+            await db.collection("staff").doc(staffMember.staff_id.toString()).set(staffMember);
+            renderDocs(staffMember);
+            loadStaffs(searchInput.value.toLowerCase());
+            showNotification('Document deleted successfully!', 'success');
+        }
+    });
 };
+
+
 
 // Image Viewer Logic
 const imageViewerModal = document.getElementById('imageViewerModal');
@@ -999,137 +2425,7 @@ window.closeImageViewer = function() {
     }, 300);
 };
 
-window.printStaffProfile = async function() {
-    if(!window.currentProfileId) return;
-    const staffMember = (await db.collection("staff").doc(window.currentProfileId.toString()).get()).data();
-    if(!staffMember) return;
 
-    const printWindow = window.open('', '_blank');
-    
-    // Build Docs HTML
-    let docsHtml = '';
-    if(staffMember.docs && staffMember.docs.length > 0) {
-        let rows = '';
-        staffMember.docs.forEach(doc => {
-            rows += `<tr>
-                <td style="padding:8px;border-bottom:1px solid #ddd;">${doc.name}</td>
-                <td style="padding:8px;border-bottom:1px solid #ddd;color:#4f46e5;">Available in System</td>
-            </tr>`;
-        });
-        docsHtml = `
-            <div style="margin-top: 20px;">
-                <h3 style="margin-bottom: 10px; color: #374151;">Uploaded Documents</h3>
-                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
-                    <thead>
-                        <tr style="background:#f9fafb;">
-                            <th style="padding:8px;border-bottom:2px solid #ddd;">Document Name</th>
-                            <th style="padding:8px;border-bottom:2px solid #ddd;">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rows}
-                    </tbody>
-                </table>
-            </div>`;
-    }
-
-    // Build Salary HTML
-    let salaryHtml = '';
-    if(staffMember.salaries && staffMember.salaries.length > 0) {
-        let rows = '';
-        staffMember.salaries.forEach(salary => {
-            rows += `<tr>
-                <td style="padding:8px;border-bottom:1px solid #ddd;">${salary.month}</td>
-                <td style="padding:8px;border-bottom:1px solid #ddd;">${salary.date}</td>
-                <td style="padding:8px;border-bottom:1px solid #ddd;font-weight:bold;">Rs. ${salary.amount}</td>
-            </tr>`;
-        });
-        salaryHtml = `
-            <div style="margin-top: 20px;">
-                <h3 style="margin-bottom: 10px; color: #374151;">Salary Payments</h3>
-                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
-                    <thead>
-                        <tr style="background:#f9fafb;">
-                            <th style="padding:8px;border-bottom:2px solid #ddd;">Month</th>
-                            <th style="padding:8px;border-bottom:2px solid #ddd;">Date Paid</th>
-                            <th style="padding:8px;border-bottom:2px solid #ddd;">Amount (Rs)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rows}
-                    </tbody>
-                </table>
-            </div>`;
-    }
-
-    const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Staff Report - ${staffMember.full_name}</title>
-            <style>
-                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #111827; padding: 40px; margin: 0; }
-                .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #f3f4f6; padding-bottom: 20px; }
-                .header h1 { margin: 0 0 10px 0; color: #4f46e5; }
-                .profile-grid { display: grid; grid-template-columns: auto 1fr; gap: 30px; margin-bottom: 30px; }
-                .photo { width: 120px; height: 120px; object-fit: cover; border-radius: 10px; border: 3px solid #f3f4f6; }
-                .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-                .info-item { font-size: 14px; }
-                .info-item strong { display: block; color: #6b7280; font-size: 11px; text-transform: uppercase; margin-bottom: 2px; }
-                @media print {
-                    body { padding: 0; }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <img src="${new URL('logo.png.png', window.location.href).href}" style="width: 80px; height: 80px; object-fit: contain; margin: 0 auto 15px auto; display: block;" onerror="this.style.display='none'" />
-                <h1 style="font-size: 24px;">ZAINABIYYA LADIES COLLEGE</h1>
-                <h2 style="font-size: 16px; color: #4b5563; font-weight: normal; margin: 0;">Staff Profile Report</h2>
-            </div>
-            
-            <div class="profile-grid">
-                <div>
-                    ${staffMember.photo ? `<img src="${staffMember.photo}" class="photo" />` : `<div class="photo" style="display:flex;align-items:center;justify-content:center;background:#f3f4f6;color:#9ca3af;">No Photo</div>`}
-                </div>
-                <div class="info-grid">
-                    <div class="info-item"><strong>Full Name</strong>${staffMember.full_name}</div>
-                    <div class="info-item"><strong>Staff ID</strong>${staffMember.staff_id}</div>
-                    <div class="info-item"><strong>Role / Designation</strong>${staffMember.grade}${staffMember.emp_type ? ` • ${staffMember.emp_type}` : ''}</div>
-                    <div class="info-item"><strong>Date of Birth</strong>${staffMember.dob ? staffMember.dob + (function(){
-                        const b = new Date(staffMember.dob);
-                        if(isNaN(b)) return '';
-                        let age = new Date().getFullYear() - b.getFullYear();
-                        const m = new Date().getMonth() - b.getMonth();
-                        if (m < 0 || (m === 0 && new Date().getDate() < b.getDate())) age--;
-                        return age >= 0 ? ` (${age} Years)` : '';
-                    })() : '-'}</div>
-                    <div class="info-item"><strong>Joined Date</strong>${staffMember.admission_date || '-'}</div>
-                    <div class="info-item"><strong>NIC No</strong>${staffMember.nic || '-'}</div>
-                    <div class="info-item"><strong>Contact Number</strong>${staffMember.parent_contact || '-'}</div>
-                    <div class="info-item"><strong>Address</strong>${staffMember.address || staffMember.city || '-'}</div>
-                </div>
-            </div>
-
-            ${docsHtml}
-            ${salaryHtml}
-
-            <div style="margin-top: 50px; text-align: center; font-size: 12px; color: #9ca3af;">
-                <p>Generated by Staff Database System on ${new Date().toLocaleDateString()}</p>
-            </div>
-        </body>
-        </html>
-    `;
-
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    
-    // Wait for images to load before printing
-    setTimeout(() => {
-        printWindow.focus();
-        printWindow.print();
-    }, 500);
-};
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {

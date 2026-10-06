@@ -262,7 +262,7 @@ async function loadBooks(query = '') {
 
         renderBooks(books);
     } catch (error) {
-        console.error("Failed to load students:", error);
+        console.error("Failed to load books:", error);
     }
 }
 

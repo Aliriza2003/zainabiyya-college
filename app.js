@@ -1,4 +1,8 @@
 // app.js
+window.onerror = function(msg, url, line, col, error) {
+    alert("SYSTEM ERROR (app.js): " + msg + "\nLine: " + line);
+};
+console.log("APP.JS LOADED - V12");
 const firebaseConfig = {
   apiKey: "AIzaSyBCEXwWHF1SyhPDMUdkP0tEkzy7EDTZZw0",
   authDomain: "zainabiyya-db.firebaseapp.com",
@@ -48,13 +52,12 @@ const enrollModal = document.getElementById('enrollModal');
 const form = document.getElementById('studentForm');
 
 window.openEnrollModal = function() {
-    enrollModal.classList.remove('hidden');
-    enrollModal.classList.add('flex');
+    enrollModal.style.display = 'flex';
+    enrollModal.style.zIndex = '9999';
 };
 
 window.closeEnrollModal = function() {
-    enrollModal.classList.add('hidden');
-    enrollModal.classList.remove('flex');
+    enrollModal.style.display = 'none';
     form.reset();
 };
 const admissionNoInput = document.getElementById('admissionNo');
@@ -276,10 +279,31 @@ searchInput.addEventListener('input', (e) => {
     loadStudents(e.target.value.toLowerCase());
 });
 
+let currentFilter = 'active';
+
+window.setFilter = function(filter) {
+    currentFilter = filter;
+    
+    // update button styles
+    const activeBtn = document.getElementById('filterActiveBtn');
+    const pastBtn = document.getElementById('filterPastBtn');
+    
+    if(filter === 'active') {
+        activeBtn.className = "px-5 py-1.5 rounded-full text-sm font-bold bg-brand-500 text-white shadow-md shadow-brand-500/20 border border-brand-500 transition-all";
+        pastBtn.className = "px-5 py-1.5 rounded-full text-sm font-bold bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 transition-all";
+    } else {
+        pastBtn.className = "px-5 py-1.5 rounded-full text-sm font-bold bg-brand-500 text-white shadow-md shadow-brand-500/20 border border-brand-500 transition-all";
+        activeBtn.className = "px-5 py-1.5 rounded-full text-sm font-bold bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 transition-all";
+    }
+    
+    loadStudents(searchInput.value.toLowerCase());
+}
+
 // Load Students from DB
 async function loadStudents(query = '') {
     try {
-        const querySnapshot = await db.collection("students").get();
+        const collectionName = currentFilter === 'active' ? "students" : "past_students";
+        const querySnapshot = await db.collection(collectionName).get();
         let students = [];
         querySnapshot.forEach((doc) => {
             students.push(doc.data());
@@ -357,7 +381,7 @@ function renderStudents(students) {
                     <div class="flex items-center gap-3">
                         ${avatarHTML}
                         <div>
-                            <button onclick="viewStudentProfile(${student.admission_no})" class="text-sm font-semibold text-brand-600 hover:text-brand-800 text-left transition-colors">${student.full_name}</button>
+                            <button onclick="viewStudentProfile('${student.admission_no}')" class="text-sm font-semibold text-brand-600 hover:text-brand-800 text-left transition-colors">${student.full_name}</button>
                             
                         </div>
                     </div>
@@ -384,20 +408,20 @@ function renderStudents(students) {
                     </div>
                 </td>
                 <td class="py-4 px-5 text-right border-b border-gray-50">
-                    <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                        <button onclick="openDocsModal(${student.admission_no})" class="text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 p-2 rounded-xl transition-all" title="Manage Documents">
+                    <div class="flex justify-end gap-1 opacity-100 transition-opacity">
+                        <button onclick="openDocsModal('${student.admission_no}', '${student.full_name.replace(/'/g, "\\'")}')" class="text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 p-2 rounded-xl transition-all" title="Manage Documents">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
                         </button>
-                        <button onclick="openExamsModal(${student.admission_no})" class="text-brand-500 hover:text-brand-700 hover:bg-brand-50 p-2 rounded-xl transition-all" title="Manage Exams">
+                        <button onclick="openExamsModal('${student.admission_no}', '${student.full_name.replace(/'/g, "\\'")}')" class="text-brand-500 hover:text-brand-700 hover:bg-brand-50 p-2 rounded-xl transition-all" title="Manage Exams">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         </button>
-                        <button onclick="openFeesModal(${student.admission_no})" class="text-green-500 hover:text-green-700 hover:bg-green-50 p-2 rounded-xl transition-all" title="Manage Fees">
+                        <button onclick="openFeesModal('${student.admission_no}', '${student.full_name.replace(/'/g, "\\'")}')" class="text-green-500 hover:text-green-700 hover:bg-green-50 p-2 rounded-xl transition-all" title="Manage Fees">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         </button>
-                        <button onclick="openEditModal(${student.admission_no})" class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-xl transition-all" title="Edit Student">
+                        <button onclick="openEditModal('${student.admission_no}')" class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-xl transition-all" title="Edit Student">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                         </button>
-                        <button onclick="promptDelete(${student.admission_no}, '${student.full_name.replace(/'/g, "\\'")}')" class="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-xl transition-all" title="Remove Student">
+                        <button onclick="promptDelete('${student.admission_no}', '${student.full_name.replace(/'/g, "\\'")}')" class="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-xl transition-all" title="Remove Student">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </button>
                     </div>
@@ -462,28 +486,28 @@ function showNotification(message, type, undoCallback = null) {
 window.promptDelete = function(id, name) {
     currentDeleteId = id;
     deleteStudentName.textContent = name;
-    deleteModal.classList.remove('hidden');
-    deleteModal.classList.add('flex');
+    deleteModal.style.display = 'flex';
+    deleteModal.style.zIndex = '9999';
 };
 
 window.closeDeleteModal = function() {
-    deleteModal.classList.add('hidden');
-    deleteModal.classList.remove('flex');
+    deleteModal.style.display = 'none';
     currentDeleteId = null;
 }
 
 document.getElementById('cancelBtn').addEventListener('click', closeDeleteModal);
 document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
     if (currentDeleteId) {
+        const collectionName = currentFilter === 'active' ? "students" : "past_students";
         // Fetch student data before deletion for potential undo
-        const studentToRestore = (await db.collection("students").doc(currentDeleteId.toString()).get()).data();
+        const studentToRestore = (await db.collection(collectionName).doc(currentDeleteId.toString()).get()).data();
         
-        await db.collection("students").doc(currentDeleteId.toString()).delete();
+        await db.collection(collectionName).doc(currentDeleteId.toString()).delete();
         
         showNotification('Student record removed successfully.', 'success', async () => {
              // Undo Delete Action
              if(studentToRestore) {
-                 await db.collection("students").doc(studentToRestore.admission_no.toString()).set(studentToRestore);
+                 await db.collection(collectionName).doc(studentToRestore.admission_no.toString()).set(studentToRestore);
                  showNotification('Student restored.', 'success');
                  loadStudents(searchInput.value.toLowerCase());
              }
@@ -496,7 +520,8 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async () =
 
 // Edit Flow
 window.openEditModal = async function(id) {
-    const student = (await db.collection("students").doc(id.toString()).get()).data();
+    const collectionName = currentFilter === 'active' ? "students" : "past_students";
+    const student = (await db.collection(collectionName).doc(id.toString()).get()).data();
     if(student) {
         editAdmissionNo.value = student.admission_no;
         editFullName.value = student.full_name;
@@ -510,21 +535,80 @@ window.openEditModal = async function(id) {
         editPhotoPreview.src = student.photo || '';
         editPhotoPreview.classList.toggle('hidden', !student.photo);
         
-        editModal.classList.remove('hidden');
-        editModal.classList.add('flex');
+        editModal.style.display = 'flex';
+        editModal.style.zIndex = '9999';
     }
 };
 
 window.closeEditModal = function() {
-    editModal.classList.add('hidden');
-    editModal.classList.remove('flex');
+    editModal.style.display = 'none';
     editForm.reset();
 }
+
+// Left Flow
+let currentLeftId = null;
+const leftModal = document.getElementById('leftModal');
+
+window.openLeftModal = async function() {
+    if (!editAdmissionNo.value) return;
+    currentLeftId = editAdmissionNo.value;
+    const student = (await db.collection("students").doc(currentLeftId.toString()).get()).data();
+    if(student) {
+        document.getElementById('leftStudentName').textContent = student.full_name;
+        leftModal.style.display = 'flex';
+        leftModal.style.zIndex = '9999';
+    }
+};
+
+window.closeLeftModal = function() {
+    leftModal.style.display = 'none';
+    currentLeftId = null;
+    document.getElementById('leftDateInput').value = '';
+    document.getElementById('leftReasonInput').value = '';
+}
+
+document.getElementById('confirmLeftBtn')?.addEventListener('click', async () => {
+    const leftDate = document.getElementById('leftDateInput').value;
+    const leftReason = document.getElementById('leftReasonInput').value.trim();
+
+    if (!leftDate || !leftReason) {
+        showNotification('Please provide both leave date and reason', 'error');
+        return;
+    }
+
+    if (currentLeftId) {
+        const studentToRestore = (await db.collection("students").doc(currentLeftId.toString()).get()).data();
+        
+        studentToRestore.left_date = leftDate;
+        studentToRestore.left_reason = leftReason;
+        studentToRestore.status = 'inactive';
+
+        await db.collection("past_students").doc(currentLeftId.toString()).set(studentToRestore);
+        await db.collection("students").doc(currentLeftId.toString()).delete();
+        
+        showNotification('Student marked as left.', 'success', async () => {
+             if(studentToRestore) {
+                 delete studentToRestore.left_date;
+                 delete studentToRestore.left_reason;
+                 delete studentToRestore.status;
+                 await db.collection("students").doc(studentToRestore.admission_no.toString()).set(studentToRestore);
+                 await db.collection("past_students").doc(currentLeftId.toString()).delete();
+                 showNotification('Student restored to active list.', 'success');
+                 loadStudents(searchInput.value.toLowerCase());
+             }
+        });
+        
+        closeLeftModal();
+        closeEditModal();
+        loadStudents(searchInput.value.toLowerCase());
+    }
+});
 
 editForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = parseInt(editAdmissionNo.value);
-    const student = (await db.collection("students").doc(id.toString()).get()).data();
+    const collectionName = currentFilter === 'active' ? "students" : "past_students";
+    const student = (await db.collection(collectionName).doc(id.toString()).get()).data();
     
     student.full_name = editFullName.value.trim();
     student.grade = editGrade.value;
@@ -539,7 +623,7 @@ editForm.addEventListener('submit', async (e) => {
         student.photo = await fileToBase64(editPhoto.files[0]);
     }
 
-    await db.collection("students").doc(student.admission_no.toString()).set(student);
+    await db.collection(collectionName).doc(student.admission_no.toString()).set(student);
     showNotification('Student updated successfully!', 'success');
     closeEditModal();
     loadStudents(searchInput.value.toLowerCase());
@@ -547,16 +631,38 @@ editForm.addEventListener('submit', async (e) => {
 
 // Profile Flow
 window.viewStudentProfile = async function(id) {
-    window.currentProfileId = id;
-    const student = (await db.collection("students").doc(id.toString()).get()).data();
-    if(!student) return;
+    console.log("viewStudentProfile clicked for ID:", id);
+    // alert("Viewing Profile for ID: " + id);
+    try {
+        window.currentProfileId = id;
+        const collectionName = currentFilter === 'active' ? "students" : "past_students";
+        const docRef = db.collection(collectionName).doc(id.toString());
+        console.log("Fetching data from Firestore collection:", collectionName, "ID:", id);
+        const docSnap = await docRef.get();
+        console.log("Firestore response received.");
+        const student = docSnap.data();
+        if(!student) {
+            showNotification('Student not found in database! ID: ' + id, 'error');
+            return;
+        }
 
-    profileName.textContent = student.full_name;
-    profileGrade.textContent = student.grade;
-    profileContact.textContent = student.parent_contact;
-    profileAdmissionDate.textContent = student.admission_date || '-';
-    profileNic.textContent = student.nic || '-';
-    profileAddress.textContent = student.address || student.city || '-';
+        // OPEN MODAL FIRST
+        console.log("Opening Profile Modal (Simple Mode)...");
+        if (profileModal) {
+            profileModal.style.display = 'flex';
+            profileModal.style.zIndex = '9999';
+            // alert("Modal display set to flex. Can you see it?");
+        } else {
+            alert("ERROR: profileModal element not found!");
+        }
+
+        console.log("Rendering Basic Info...");
+        if (profileName) profileName.textContent = student.full_name;
+        if (profileGrade) profileGrade.textContent = student.grade;
+        if (profileContact) profileContact.textContent = student.parent_contact;
+        if (profileAdmissionDate) profileAdmissionDate.textContent = student.admission_date || '-';
+        if (profileNic) profileNic.textContent = student.nic || '-';
+        if (profileAddress) profileAddress.textContent = student.address || student.city || '-';
     let dobText = student.dob || '-';
     if(student.dob) {
         const birthDate = new Date(student.dob);
@@ -569,6 +675,21 @@ window.viewStudentProfile = async function(id) {
     }
     profileDob.textContent = dobText;
     profileNote.textContent = student.note || '-';
+
+    const leftInfo = document.getElementById('profileLeftInfo');
+    if (leftInfo) {
+        if (student.left_date || student.left_reason) {
+            const dateEl = document.getElementById('profileLeftDate');
+            const reasonEl = document.getElementById('profileLeftReason');
+            if (dateEl) dateEl.textContent = student.left_date || '-';
+            if (reasonEl) reasonEl.textContent = student.left_reason || '-';
+            leftInfo.classList.remove('hidden');
+            leftInfo.classList.add('grid');
+        } else {
+            leftInfo.classList.add('hidden');
+            leftInfo.classList.remove('grid');
+        }
+    }
 
     if (student.photo) {
         profilePhoto.src = student.photo;
@@ -607,8 +728,8 @@ window.viewStudentProfile = async function(id) {
                 </td>
                 <td class="py-3 px-4 text-right border-t border-gray-50">
                     ${isPdf 
-                        ? `<button onclick="window.open('${doc.file}', '_blank')" class="text-brand-600 font-semibold hover:underline">View PDF</button>` 
-                        : `<button onclick="window.openImageViewer('${doc.file}')" class="text-brand-600 font-semibold hover:underline">View Image</button>`
+                        ? `<a href="${(doc.file||'').replace('/upload/', '/upload/fl_attachment/')}" target="_blank" rel="noopener noreferrer" class="text-brand-600 font-semibold hover:underline">View PDF</a>` 
+                        : `<button onclick="window.openImageViewer('${(doc.file||'').replace(/'/g, "\\'")}')" class="text-brand-600 font-semibold hover:underline">View Image</button>`
                     }
                 </td>
             `;
@@ -724,8 +845,7 @@ window.viewStudentProfile = async function(id) {
         });
     }
 
-    profileModal.classList.remove('hidden');
-    profileModal.classList.add('flex');
+    console.log("Basic Rendering done.");
     
     // Render profile fee records
     profileFeesTbody.innerHTML = '';
@@ -749,29 +869,36 @@ window.viewStudentProfile = async function(id) {
             profileFeesTbody.appendChild(tr);
         });
     }
+
+    } catch (error) {
+        alert('Critical Error in viewStudentProfile: ' + error.message);
+        console.error(error);
+    }
 }
 
 window.closeProfileModal = function() {
-    profileModal.classList.add('hidden');
-    profileModal.classList.remove('flex');
+    profileModal.style.display = 'none';
 }
 
 // Fees Flow
-window.openFeesModal = async function(id) {
-    const student = (await db.collection("students").doc(id.toString()).get()).data();
-    if(student) {
-        addFeeAdmissionNo.value = student.admission_no;
-        feeStudentName.textContent = student.full_name;
-        newFeeDate.valueAsDate = new Date();
-        renderFees(student);
-        feesModal.classList.remove('hidden');
-        feesModal.classList.add('flex');
+window.openFeesModal = function(id, name) {
+    console.log("openFeesModal clicked for ID:", id);
+    if (feeStudentName) feeStudentName.textContent = name;
+    if (addFeeAdmissionNo) addFeeAdmissionNo.value = id;
+    loadFees(id);
+    if (feesModal) {
+        feesModal.style.display = 'flex';
+        feesModal.style.zIndex = '9999';
     }
 };
 
+async function loadFees(id) {
+    const student = (await db.collection("students").doc(id.toString()).get()).data();
+    if(student) renderFees(student);
+}
+
 window.closeFeesModal = function() {
-    feesModal.classList.add('hidden');
-    feesModal.classList.remove('flex');
+    feesModal.style.display = 'none';
     addFeeForm.reset();
 }
 
@@ -871,24 +998,24 @@ examTypeSelect?.addEventListener('change', () => {
     }
 });
 
-window.openExamsModal = async function(id) {
-    const student = (await db.collection("students").doc(id.toString()).get()).data();
-    if(student) {
-        addExamAdmissionNo.value = student.admission_no;
-        examStudentName.textContent = student.full_name;
-        if(examTypeSelect) {
-            examTypeSelect.value = 'term';
-            examTypeSelect.dispatchEvent(new Event('change'));
-        }
-        renderExams(student);
-        examsModal.classList.remove('hidden');
-        examsModal.classList.add('flex');
+window.openExamsModal = function(id, name) {
+    console.log("openExamsModal clicked for ID:", id);
+    // alert("Opening Exams Modal for " + name);
+    examStudentName.textContent = name;
+    addExamAdmissionNo.value = id;
+    loadExams(id);
+    if (examsModal) {
+        examsModal.style.display = 'flex';
+        examsModal.style.zIndex = '9999';
     }
 };
+async function loadExams(id) {
+    const student = (await db.collection("students").doc(id.toString()).get()).data();
+    if(student) renderExams(student);
+}
 
 window.closeExamsModal = function() {
-    examsModal.classList.add('hidden');
-    examsModal.classList.remove('flex');
+    examsModal.style.display = 'none';
     addExamForm.reset();
     resetSubjectsContainer();
 }
@@ -1063,15 +1190,13 @@ window.openEditExamModal = async function(studentId, examId) {
             editExamDate.value = exam.date || '';
             editExamMarks.value = exam.marks === undefined ? '' : exam.marks;
             
-            editExamModal.classList.remove('hidden');
-            editExamModal.classList.add('flex');
+            editExamModal.style.display = 'flex';
         }
     }
 };
 
 window.closeEditExamModal = function() {
-    editExamModal.classList.add('hidden');
-    editExamModal.classList.remove('flex');
+    editExamModal.style.display = 'none';
     editExamRowForm.reset();
 }
 
@@ -1109,20 +1234,25 @@ window.deleteExam = async function(studentId, examId) {
 };
 
 // Docs Flow
-window.openDocsModal = async function(id) {
-    const student = (await db.collection("students").doc(id.toString()).get()).data();
-    if(student) {
-        addDocAdmissionNo.value = student.admission_no;
-        docStudentName.textContent = student.full_name;
-        renderDocs(student);
-        docsModal.classList.remove('hidden');
-        docsModal.classList.add('flex');
+window.openDocsModal = function(id, name) {
+    console.log("openDocsModal clicked for ID:", id);
+    console.log("openDocsModal clicked for ID:", id);
+    if (docStudentName) docStudentName.textContent = name;
+    if (addDocAdmissionNo) addDocAdmissionNo.value = id;
+    loadDocs(id);
+    if (docsModal) {
+        docsModal.style.display = 'flex';
+        docsModal.style.zIndex = '9999';
     }
 };
 
+async function loadDocs(id) {
+    const student = (await db.collection("students").doc(id.toString()).get()).data();
+    if(student) renderDocs(student);
+}
+
 window.closeDocsModal = function() {
-    docsModal.classList.add('hidden');
-    docsModal.classList.remove('flex');
+    docsModal.style.display = 'none';
     addDocForm.reset();
 }
 
@@ -1139,11 +1269,14 @@ function renderDocs(student) {
         const tr = document.createElement('tr');
         let isPdf = false;
         if (doc.file) {
-            if (doc.file.startsWith('data:application/pdf')) isPdf = true;
-            else if (doc.file.toLowerCase().includes('.pdf?')) isPdf = true;
+            if (doc.format && doc.format.toLowerCase() === 'pdf') isPdf = true;
+            else if (doc.file.startsWith('data:application/pdf')) isPdf = true;
+            else if (doc.file.toLowerCase().includes('.pdf')) isPdf = true;
             else if (doc.storagePath && doc.storagePath.toLowerCase().endsWith('.pdf')) isPdf = true;
             else if (doc.name && doc.name.toLowerCase().endsWith('.pdf')) isPdf = true;
         }
+        const escapedFileUrl = (doc.file || '').replace(/'/g, "\\'");
+        const downloadURL = (doc.file || '').replace('/upload/', '/upload/fl_attachment/');
         tr.innerHTML = `
             <td class="py-3 px-4 font-semibold text-gray-700 pl-4 border-t border-gray-50">
                 ${doc.name}
@@ -1151,10 +1284,10 @@ function renderDocs(student) {
             <td class="py-3 px-4 text-right border-t border-gray-50">
                 <div class="flex justify-end gap-1">
                     ${isPdf 
-                        ? `<button onclick="window.open('${doc.file}', '_blank')" class="text-brand-400 hover:text-brand-600 p-1.5 hover:bg-brand-50 rounded-lg transition-colors" title="View PDF">
+                        ? `<a href="${downloadURL}" target="_blank" rel="noopener noreferrer" class="text-brand-400 hover:text-brand-600 p-1.5 hover:bg-brand-50 rounded-lg transition-colors" title="View PDF">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                           </button>` 
-                        : `<button onclick="window.openImageViewer('${doc.file}')" class="text-brand-400 hover:text-brand-600 p-1.5 hover:bg-brand-50 rounded-lg transition-colors" title="View Image">
+                           </a>` 
+                        : `<button onclick="window.openImageViewer('${escapedFileUrl}')" class="text-brand-400 hover:text-brand-600 p-1.5 hover:bg-brand-50 rounded-lg transition-colors" title="View Image">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                            </button>`
                     }
@@ -1202,7 +1335,8 @@ addDocForm.addEventListener('submit', async (e) => {
                 id: docId,
                 name: newDocName.value.trim(),
                 file: downloadURL,
-                storagePath: data.public_id
+                storagePath: data.public_id,
+                format: data.format || file.name.split('.').pop()
             });
             
             await db.collection("students").doc(student.admission_no.toString()).set(student);
@@ -1237,6 +1371,8 @@ const viewerImage = document.getElementById('viewerImage');
 
 window.openImageViewer = function(src) {
     if(!src || src.includes('placeholder')) return;
+    // Auto-close the docs modal so only the image is shown
+    if (docsModal) docsModal.style.display = 'none';
     viewerImage.src = src;
     imageViewerModal.classList.remove('hidden');
     imageViewerModal.classList.add('flex');
@@ -1260,10 +1396,14 @@ window.closeImageViewer = function() {
     }, 300);
 };
 
+
+
 window.printStudentProfile = async function() {
-    if(!window.currentProfileId) return;
-    const student = (await db.collection("students").doc(window.currentProfileId.toString()).get()).data();
-    if(!student) return;
+    if (!window.currentProfileId) return;
+    
+    const collectionName = currentFilter === 'active' ? "students" : "past_students";
+    const student = (await db.collection(collectionName).doc(window.currentProfileId.toString()).get()).data();
+    if (!student) return;
 
     const printWindow = window.open('', '_blank');
     
